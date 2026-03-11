@@ -54,6 +54,7 @@ export type OnboardingStep =
   | 'sleep'
   | 'timezone'
   | 'completed';
+export type ProfileQuestionStep = Exclude<OnboardingStep, 'completed'>;
 
 export interface Exercise {
   id: string;
@@ -161,6 +162,9 @@ export interface UserState {
   ui: {
     onboarding?: {
       step: OnboardingStep;
+    };
+    profileEdit?: {
+      step: ProfileQuestionStep;
     };
     progressDraft?: {
       date: string;

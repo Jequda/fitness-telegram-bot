@@ -1,5 +1,6 @@
-import { EquipmentType, GoalType, OnboardingStep, SexType, UserState } from '../types/index.js';
+import { EquipmentType, GoalType, OnboardingStep, ProfileQuestionStep, SexType, UserState } from '../types/index.js';
 import { goalLabel } from './storage.js';
+import { normalizeTimezone, resolveTimezoneFromInput } from '../utils/date.js';
 
 const onboardingSteps: OnboardingStep[] = [
   'name',
@@ -20,6 +21,8 @@ const onboardingSteps: OnboardingStep[] = [
   'timezone',
   'completed'
 ];
+
+export const profileQuestionSteps = onboardingSteps.filter((step): step is ProfileQuestionStep => step !== 'completed');
 
 const experienceMap: Record<string, 'beginner' | 'intermediate' | 'advanced'> = {
   новичок: 'beginner',
@@ -67,6 +70,7 @@ export function advanceOnboarding(state: UserState) {
 export function resetOnboarding(state: UserState) {
   state.profile.isOnboarded = false;
   state.ui.onboarding = { step: 'name' };
+  state.ui.profileEdit = undefined;
 }
 
 export function applyGoal(state: UserState, goal: GoalType) {
@@ -88,10 +92,9 @@ function parseEquipment(input: string): EquipmentType[] {
   return parsed.length ? [...new Set(parsed)] : ['bodyweight'];
 }
 
-export function applyOnboardingAnswer(state: UserState, rawInput: string) {
+function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: string) {
   const input = rawInput.trim();
   const normalized = input.toLowerCase();
-  const step = getCurrentOnboardingStep(state);
 
   switch (step) {
     case 'name':
@@ -108,6 +111,9 @@ export function applyOnboardingAnswer(state: UserState, rawInput: string) {
       break;
     case 'weight':
       state.profile.weightKg = Number(input);
+      break;
+    case 'goal':
+      state.profile.goal = input as GoalType;
       break;
     case 'experience':
       state.profile.experienceLevel = experienceMap[normalized] ?? 'advanced';
@@ -148,17 +154,44 @@ export function applyOnboardingAnswer(state: UserState, rawInput: string) {
       state.profile.averageSleepHours = Number(input);
       break;
     case 'timezone':
-      state.profile.timezone = input;
-      state.timezone = input;
+      {
+        const timezone = resolveTimezoneFromInput(input);
+        if (!timezone) {
+          throw new Error('CITY_TIMEZONE_NOT_FOUND');
+        }
+        state.profile.timezone = timezone;
+        state.timezone = timezone;
+      }
       break;
     default:
       break;
   }
+}
+
+export function applyOnboardingAnswer(state: UserState, rawInput: string) {
+  const step = getCurrentOnboardingStep(state);
+  if (step === 'completed') return;
+
+  applyStepAnswer(state, step, rawInput);
 
   advanceOnboarding(state);
   if (getCurrentOnboardingStep(state) === 'completed') {
     state.profile.isOnboarded = true;
   }
+}
+
+export function startProfileEdit(state: UserState, step: ProfileQuestionStep) {
+  state.ui.profileEdit = { step };
+}
+
+export function clearProfileEdit(state: UserState) {
+  state.ui.profileEdit = undefined;
+}
+
+export function applyProfileAnswer(state: UserState, step: ProfileQuestionStep, rawInput: string) {
+  applyStepAnswer(state, step, rawInput);
+  state.profile.isOnboarded = true;
+  clearProfileEdit(state);
 }
 
 function sexLabel(sex: UserState['profile']['sex']) {

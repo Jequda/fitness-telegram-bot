@@ -2,6 +2,7 @@ import { PoolClient } from 'pg';
 import { DailyLog, EquipmentType, ExerciseProgress, ExerciseSetLog, GoalType, UserProfile, UserState } from '../types/index.js';
 import { getStateRow, listStateRows, migrateLegacyStateIfNeeded, query, withTransaction } from './db.js';
 import { logInfo, logWarn } from './logger.js';
+import { normalizeTimezone } from '../utils/date.js';
 
 function buildDefaultProfile(): UserProfile {
   return {
@@ -28,13 +29,15 @@ function buildDefaultProfile(): UserProfile {
 
 function normalizeState(state: Partial<UserState>, chatId: number): UserState {
   const profile = state.profile ?? buildDefaultProfile();
+  const timezone = normalizeTimezone(state.timezone || profile.timezone || process.env.TIMEZONE || 'Europe/Moscow');
 
   return {
     chatId,
-    timezone: state.timezone || profile.timezone || process.env.TIMEZONE || 'Europe/Moscow',
+    timezone,
     profile: {
       ...buildDefaultProfile(),
       ...profile,
+      timezone,
       equipment: (profile.equipment?.length ? profile.equipment : ['bodyweight']) as EquipmentType[],
       cardioTypes: profile.cardioTypes ?? []
     },
@@ -68,6 +71,7 @@ function normalizeState(state: Partial<UserState>, chatId: number): UserState {
     },
     ui: {
       onboarding: state.ui?.onboarding ?? { step: 'name' },
+      profileEdit: state.ui?.profileEdit,
       progressDraft: state.ui?.progressDraft
     }
   };
@@ -241,13 +245,14 @@ async function persistState(client: PoolClient, state: UserState) {
   await client.query(
     `
       INSERT INTO user_ui_state (
-        chat_id, onboarding_step, progress_draft_date, progress_draft_exercise_id,
+        chat_id, onboarding_step, profile_edit_step, progress_draft_date, progress_draft_exercise_id,
         progress_draft_pending_set_number, progress_draft_pending_value
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (chat_id)
       DO UPDATE SET
         onboarding_step = EXCLUDED.onboarding_step,
+        profile_edit_step = EXCLUDED.profile_edit_step,
         progress_draft_date = EXCLUDED.progress_draft_date,
         progress_draft_exercise_id = EXCLUDED.progress_draft_exercise_id,
         progress_draft_pending_set_number = EXCLUDED.progress_draft_pending_set_number,
@@ -256,6 +261,7 @@ async function persistState(client: PoolClient, state: UserState) {
     [
       normalized.chatId,
       normalized.ui.onboarding?.step ?? 'name',
+      normalized.ui.profileEdit?.step ?? null,
       normalized.ui.progressDraft?.date ?? null,
       normalized.ui.progressDraft?.exerciseId ?? null,
       normalized.ui.progressDraft?.pendingSetNumber ?? null,
@@ -430,6 +436,7 @@ export async function readState(chatId: number): Promise<UserState> {
       },
       ui: {
         onboarding: { step: uiState?.onboarding_step ?? 'name' },
+        profileEdit: uiState?.profile_edit_step ? { step: uiState.profile_edit_step } : undefined,
         progressDraft:
           uiState?.progress_draft_exercise_id && uiState?.progress_draft_pending_set_number
             ? {

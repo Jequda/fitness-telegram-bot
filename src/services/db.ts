@@ -3,8 +3,46 @@ import { Pool, PoolClient } from 'pg';
 import { logInfo, logWarn } from './logger.js';
 import { getRuntimePath } from '../utils/paths.js';
 
-const connectionString =
-  process.env.DATABASE_URL || 'postgresql://fitness_bot:fitness_bot@localhost:5432/fitness_bot';
+function requiredEnv(name: string, fallback?: string) {
+  const value = process.env[name] || fallback;
+  if (!value) {
+    throw new Error(`${name} not found in .env`);
+  }
+  return value;
+}
+
+export function getDatabaseConfig() {
+  if (process.env.DATABASE_URL) {
+    return {
+      connectionString: process.env.DATABASE_URL,
+      host: process.env.POSTGRES_HOST || 'localhost',
+      port: Number(process.env.POSTGRES_PORT || 5432),
+      database: process.env.POSTGRES_DB || 'fitness_bot',
+      user: process.env.POSTGRES_USER || 'fitness_bot'
+    };
+  }
+
+  const host = requiredEnv('POSTGRES_HOST', 'localhost');
+  const port = Number(requiredEnv('POSTGRES_PORT', '5432'));
+  const database = requiredEnv('POSTGRES_DB', 'fitness_bot');
+  const user = requiredEnv('POSTGRES_USER', 'fitness_bot');
+  const password = requiredEnv('POSTGRES_PASSWORD', 'fitness_bot');
+
+  return {
+    host,
+    port,
+    database,
+    user,
+    password,
+    connectionString: `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`
+  };
+}
+
+export function getMaskedDatabaseUrl() {
+  return getDatabaseConfig().connectionString.replace(/:[^:@/]+@/, ':***@');
+}
+
+const connectionString = getDatabaseConfig().connectionString;
 
 let pool: Pool | null = null;
 
@@ -74,6 +112,7 @@ export async function initializeDb() {
     CREATE TABLE IF NOT EXISTS user_ui_state (
       chat_id BIGINT PRIMARY KEY REFERENCES users(chat_id) ON DELETE CASCADE,
       onboarding_step TEXT NOT NULL DEFAULT 'name',
+      profile_edit_step TEXT,
       progress_draft_date TEXT,
       progress_draft_exercise_id TEXT,
       progress_draft_pending_set_number INTEGER,
@@ -137,7 +176,11 @@ export async function initializeDb() {
     );
 
   `);
-  logInfo('Database initialized', { connectionString: connectionString.replace(/:[^:@/]+@/, ':***@') });
+  await db.query(`
+    ALTER TABLE user_ui_state
+    ADD COLUMN IF NOT EXISTS profile_edit_step TEXT
+  `);
+  logInfo('Database initialized', { connectionString: getMaskedDatabaseUrl() });
 }
 
 export async function closeDb() {

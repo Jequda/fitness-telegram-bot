@@ -4,9 +4,10 @@ import {
   onboardingExperienceKeyboard,
   onboardingGoalKeyboard,
   onboardingPrompt,
-  onboardingSexKeyboard
+  onboardingSexKeyboard,
+  profileActionsKeyboard
 } from '../keyboards/main.js';
-import { applyOnboardingAnswer, getCurrentOnboardingStep, profileSummary } from '../services/onboarding.js';
+import { applyOnboardingAnswer, applyProfileAnswer, getCurrentOnboardingStep, profileSummary } from '../services/onboarding.js';
 import { readState, writeState } from '../services/storage.js';
 
 export function registerOnboarding(bot: Telegraf) {
@@ -18,6 +19,20 @@ export function registerOnboarding(bot: Telegraf) {
     if (text.startsWith('/')) return;
 
     const state = await readState(chatId);
+    const profileEditStep = state.ui.profileEdit?.step;
+    if (profileEditStep) {
+      try {
+        applyProfileAnswer(state, profileEditStep, text);
+        await writeState(state);
+        return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+      } catch (error) {
+        if (error instanceof Error && error.message === 'CITY_TIMEZONE_NOT_FOUND') {
+          return ctx.reply('Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Saint Petersburg, New York.', profileActionsKeyboard());
+        }
+        throw error;
+      }
+    }
+
     if (state.profile.isOnboarded) return;
 
     const step = getCurrentOnboardingStep(state);
@@ -31,8 +46,15 @@ export function registerOnboarding(bot: Telegraf) {
       return ctx.reply(onboardingPrompt(step), onboardingExperienceKeyboard());
     }
 
-    applyOnboardingAnswer(state, text);
-    await writeState(state);
+    try {
+      applyOnboardingAnswer(state, text);
+      await writeState(state);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'CITY_TIMEZONE_NOT_FOUND') {
+        return ctx.reply('Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Saint Petersburg, New York.');
+      }
+      throw error;
+    }
 
     const nextStep = getCurrentOnboardingStep(state);
     if (nextStep === 'sex') {

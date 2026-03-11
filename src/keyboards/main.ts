@@ -1,5 +1,5 @@
 import { Markup } from 'telegraf';
-import { DailyPlan, ExerciseProgress, GoalType, OnboardingStep } from '../types/index.js';
+import { DailyPlan, ExerciseProgress, GoalType, OnboardingStep, ProfileQuestionStep } from '../types/index.js';
 import { exercisesMap } from '../data/exercises.js';
 
 export const mainMenu = Markup.inlineKeyboard([
@@ -8,6 +8,80 @@ export const mainMenu = Markup.inlineKeyboard([
   [Markup.button.callback('Анкета', 'profile'), Markup.button.callback('Убрать вечер', 'skip_evening')],
   [Markup.button.callback('Убрать день', 'skip_day'), Markup.button.callback('Недельный отчёт', 'week_report')]
 ]);
+
+export function profileActionsKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Изменить анкету', 'profile:edit_menu')],
+    [Markup.button.callback('Назад', 'main_menu')]
+  ]);
+}
+
+export function profileEditMenuKeyboard() {
+  const fields: Array<[string, ProfileQuestionStep]> = [
+    ['Имя', 'name'],
+    ['Пол', 'sex'],
+    ['Возраст', 'age'],
+    ['Рост', 'height'],
+    ['Вес', 'weight'],
+    ['Цель', 'goal'],
+    ['Опыт', 'experience'],
+    ['Оборудование', 'equipment'],
+    ['Дней в неделю', 'workout_days'],
+    ['Минут в день', 'workout_minutes'],
+    ['Кардио', 'cardio'],
+    ['Ограничения', 'limitations'],
+    ['Травмы', 'injuries'],
+    ['Активность', 'activity'],
+    ['Сон', 'sleep'],
+    ['Город', 'timezone']
+  ];
+
+  return Markup.inlineKeyboard([
+    ...fields.map(([label, step]) => [Markup.button.callback(label, `profile:edit:${step}`)]),
+    [Markup.button.callback('Назад к анкете', 'profile')],
+    [Markup.button.callback('В меню', 'main_menu')]
+  ]);
+}
+
+export function profileEditCancelKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Отмена', 'profile:cancel')]
+  ]);
+}
+
+export function profileEditSexKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Мужчина', 'profile:value:sex:male')],
+    [Markup.button.callback('Женщина', 'profile:value:sex:female')],
+    [Markup.button.callback('Отмена', 'profile:cancel')]
+  ]);
+}
+
+export function profileEditGoalKeyboard() {
+  const buttons: Array<[string, GoalType]> = [
+    ['Жиросжигание', 'fat_loss'],
+    ['Мышцы', 'muscle_gain'],
+    ['Сила', 'strength'],
+    ['Форма', 'general_fitness'],
+    ['Мобильность', 'mobility'],
+    ['Осанка', 'posture'],
+    ['Выносливость', 'endurance']
+  ];
+
+  return Markup.inlineKeyboard([
+    ...buttons.map(([label, value]) => [Markup.button.callback(label, `profile:value:goal:${value}`)]),
+    [Markup.button.callback('Отмена', 'profile:cancel')]
+  ]);
+}
+
+export function profileEditExperienceKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Новичок', 'profile:value:experience:beginner')],
+    [Markup.button.callback('Средний', 'profile:value:experience:intermediate')],
+    [Markup.button.callback('Продвинутый', 'profile:value:experience:advanced')],
+    [Markup.button.callback('Отмена', 'profile:cancel')]
+  ]);
+}
 
 export const wellnessKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('Нормально', 'wellness:normal'), Markup.button.callback('Устал', 'wellness:tired')],
@@ -142,8 +216,12 @@ export function onboardingPrompt(step: OnboardingStep) {
     injuries: 'Есть ли травмы или проблемные зоны? Если нет, напиши "нет".',
     activity: 'Какой у тебя уровень активности вне тренировок? Например: офис, много хожу, физическая работа.',
     sleep: 'Сколько часов сна в среднем получается?',
-    timezone: 'Какой у тебя часовой пояс? Например: Europe/Moscow.'
+    timezone: 'Из какого ты города? Например: Москва, Saint Petersburg, Berlin, New York. Бот сам определит часовой пояс.'
   };
 
   return prompts[step];
+}
+
+export function profileEditPrompt(step: ProfileQuestionStep) {
+  return `Редактирование анкеты.\n\n${onboardingPrompt(step)}\n\nПосле сохранения бот обновит профиль.`;
 }

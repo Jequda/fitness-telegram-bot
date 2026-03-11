@@ -8,17 +8,32 @@ import {
   onboardingGoalKeyboard,
   onboardingPrompt,
   onboardingSexKeyboard,
+  profileActionsKeyboard,
+  profileEditCancelKeyboard,
+  profileEditExperienceKeyboard,
+  profileEditGoalKeyboard,
+  profileEditMenuKeyboard,
+  profileEditPrompt,
+  profileEditSexKeyboard,
   progressExerciseKeyboard,
   progressOverviewKeyboard,
   wellnessKeyboard
 } from '../keyboards/main.js';
 import { exercisesMap } from '../data/exercises.js';
-import { SexType, WellnessState } from '../types/index.js';
+import { GoalType, ProfileQuestionStep, SexType, WellnessState } from '../types/index.js';
 import { volumeNotice } from '../services/adaptation.js';
 import { logWarn } from '../services/logger.js';
 import { dayPlanText, eveningOnlyText, exerciseCardText, workOnlyText } from '../services/messages.js';
 import { getExercisePhotoFile } from '../services/media.js';
-import { applyGoal, getCurrentOnboardingStep, profileSummary, resetOnboarding } from '../services/onboarding.js';
+import {
+  applyGoal,
+  applyProfileAnswer,
+  clearProfileEdit,
+  getCurrentOnboardingStep,
+  profileSummary,
+  resetOnboarding,
+  startProfileEdit
+} from '../services/onboarding.js';
 import { buildTodayPlan } from '../services/planner.js';
 import {
   appendExerciseSet,
@@ -60,6 +75,13 @@ async function ensureOnboarded(ctx: any) {
   return false;
 }
 
+function profileEditReply(step: ProfileQuestionStep) {
+  if (step === 'sex') return { text: profileEditPrompt(step), extra: profileEditSexKeyboard() };
+  if (step === 'goal') return { text: profileEditPrompt(step), extra: profileEditGoalKeyboard() };
+  if (step === 'experience') return { text: profileEditPrompt(step), extra: profileEditExperienceKeyboard() };
+  return { text: profileEditPrompt(step), extra: profileEditCancelKeyboard() };
+}
+
 export function registerCommands(bot: Telegraf) {
   bot.start(async (ctx) => {
     const chatId = ctx.chat?.id;
@@ -78,7 +100,7 @@ export function registerCommands(bot: Telegraf) {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const state = await readState(chatId);
-    return ctx.reply(profileSummary(state), mainMenu);
+    return ctx.reply(profileSummary(state), profileActionsKeyboard());
   });
 
   bot.command('reauth', async (ctx) => {
@@ -170,7 +192,71 @@ export function registerCommands(bot: Telegraf) {
     await ctx.answerCbQuery();
     const chatId = ctx.chat?.id;
     if (!chatId) return;
-    return ctx.reply(profileSummary(await readState(chatId)), mainMenu);
+    return ctx.reply(profileSummary(await readState(chatId)), profileActionsKeyboard());
+  });
+
+  bot.action('profile:edit_menu', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    return ctx.reply('Что изменить в анкете?', profileEditMenuKeyboard());
+  });
+
+  bot.action('profile:cancel', async (ctx) => {
+    await ctx.answerCbQuery('Редактирование отменено');
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    clearProfileEdit(state);
+    await writeState(state);
+    return ctx.reply(profileSummary(state), profileActionsKeyboard());
+  });
+
+  bot.action(/^profile:edit:(name|sex|age|height|weight|goal|experience|equipment|workout_days|workout_minutes|cardio|limitations|injuries|activity|sleep|timezone)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const step = ctx.match[1] as ProfileQuestionStep;
+    const state = await readState(chatId);
+    startProfileEdit(state, step);
+    await writeState(state);
+    const reply = profileEditReply(step);
+    return ctx.reply(reply.text, reply.extra);
+  });
+
+  bot.action(/^profile:value:sex:(male|female)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    applyProfileAnswer(state, 'sex', ctx.match[1] === 'female' ? 'женщина' : 'мужчина');
+    await writeState(state);
+    return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+  });
+
+  bot.action(/^profile:value:goal:(fat_loss|muscle_gain|strength|general_fitness|mobility|posture|endurance)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    applyProfileAnswer(state, 'goal', ctx.match[1] as GoalType);
+    await writeState(state);
+    return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+  });
+
+  bot.action(/^profile:value:experience:(beginner|intermediate|advanced)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const labels = {
+      beginner: 'новичок',
+      intermediate: 'средний',
+      advanced: 'продвинутый'
+    };
+    applyProfileAnswer(state, 'experience', labels[ctx.match[1] as keyof typeof labels]);
+    await writeState(state);
+    return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
   });
 
   bot.action('main_menu', async (ctx) => {

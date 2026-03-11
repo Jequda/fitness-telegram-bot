@@ -4,7 +4,7 @@ import { registerCommands } from './handlers/commands.js';
 import { registerOnboarding } from './handlers/onboarding.js';
 import { getLogFilePath, initLogger, logError, logInfo } from './services/logger.js';
 import { registerSchedulers } from './services/scheduler.js';
-import { initializeDb, closeDb } from './services/db.js';
+import { initializeDb, closeDb, getDatabaseConfig, getMaskedDatabaseUrl } from './services/db.js';
 import { initializeState, readState, writeState } from './services/storage.js';
 
 const token = process.env.BOT_TOKEN;
@@ -15,12 +15,17 @@ if (!token) {
 await initializeDb();
 initLogger();
 const storageBackend = await initializeState();
+const dbConfig = getDatabaseConfig();
 logInfo('Application bootstrapping started', {
   storageBackend,
   logFilePath: getLogFilePath(),
   timezone: process.env.TIMEZONE || 'Europe/Moscow',
   model: process.env.OPENAI_MODEL || 'gpt-5-mini',
-  databaseUrl: (process.env.DATABASE_URL || 'postgresql://fitness_bot:***@localhost:5432/fitness_bot').replace(/:[^:@/]+@/, ':***@')
+  databaseUrl: getMaskedDatabaseUrl(),
+  databaseHost: dbConfig.host,
+  databasePort: dbConfig.port,
+  databaseName: dbConfig.database,
+  databaseUser: dbConfig.user
 });
 
 const bot = new Telegraf(token);
