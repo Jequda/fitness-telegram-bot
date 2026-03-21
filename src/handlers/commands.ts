@@ -181,6 +181,24 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply(await weeklyReport(ctx.chat!.id), await menuByChat(ctx.chat!.id));
   });
 
+  bot.command('notifications_on', async (ctx) => {
+    if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
+    const state = await readState(chatId);
+    state.notificationsEnabled = true;
+    await writeState(state);
+    return ctx.reply('Уведомления включены.', mainMenu(true));
+  });
+
+  bot.command('notifications_off', async (ctx) => {
+    if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
+    const state = await readState(chatId);
+    state.notificationsEnabled = false;
+    await writeState(state);
+    return ctx.reply('Уведомления отключены.', mainMenu(false));
+  });
+
   bot.command('debug_state', async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
