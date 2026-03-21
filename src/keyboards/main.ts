@@ -2,12 +2,15 @@ import { Markup } from 'telegraf';
 import { DailyPlan, ExerciseProgress, GoalType, OnboardingStep, ProfileQuestionStep } from '../types/index.js';
 import { exercisesMap } from '../data/exercises.js';
 
-export const mainMenu = Markup.inlineKeyboard([
-  [Markup.button.callback('Сегодня', 'today'), Markup.button.callback('Самочувствие', 'status')],
-  [Markup.button.callback('Упражнения', 'exercises'), Markup.button.callback('Прогресс', 'progress')],
-  [Markup.button.callback('Анкета', 'profile'), Markup.button.callback('Убрать вечер', 'skip_evening')],
-  [Markup.button.callback('Убрать день', 'skip_day'), Markup.button.callback('Недельный отчёт', 'week_report')]
-]);
+export function mainMenu(notificationsEnabled = true) {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Сегодня', 'today'), Markup.button.callback('Самочувствие', 'status')],
+    [Markup.button.callback('Упражнения', 'exercises'), Markup.button.callback('Прогресс', 'progress')],
+    [Markup.button.callback('Анкета', 'profile'), Markup.button.callback('Убрать вечер', 'skip_evening')],
+    [Markup.button.callback('Убрать день', 'skip_day'), Markup.button.callback('Недельный отчёт', 'week_report')],
+    [Markup.button.callback(notificationsEnabled ? 'Отключить уведомления' : 'Включить уведомления', 'toggle_notifications')]
+  ]);
+}
 
 export function profileActionsKeyboard() {
   return Markup.inlineKeyboard([
@@ -24,6 +27,7 @@ export function profileEditMenuKeyboard() {
     ['Рост', 'height'],
     ['Вес', 'weight'],
     ['Цель', 'goal'],
+    ['Срок цели', 'goal_timeline'],
     ['Опыт', 'experience'],
     ['Оборудование', 'equipment'],
     ['Дней в неделю', 'workout_days'],
@@ -44,9 +48,7 @@ export function profileEditMenuKeyboard() {
 }
 
 export function profileEditCancelKeyboard() {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback('Отмена', 'profile:cancel')]
-  ]);
+  return Markup.inlineKeyboard([[Markup.button.callback('Отмена', 'profile:cancel')]]);
 }
 
 export function profileEditSexKeyboard() {
@@ -80,6 +82,13 @@ export function profileEditExperienceKeyboard() {
     [Markup.button.callback('Средний', 'profile:value:experience:intermediate')],
     [Markup.button.callback('Продвинутый', 'profile:value:experience:advanced')],
     [Markup.button.callback('Отмена', 'profile:cancel')]
+  ]);
+}
+
+export function exerciseDetailKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Выбрать другое упражнение', 'exercises')],
+    [Markup.button.callback('Главное меню', 'main_menu')]
   ]);
 }
 
@@ -206,9 +215,9 @@ export function onboardingPrompt(step: OnboardingStep) {
     height: 'Какой у тебя рост в сантиметрах?',
     weight: 'Какой у тебя вес в килограммах?',
     goal: 'Выбери цель кнопкой ниже.',
+    goal_timeline: 'За сколько недель хочешь прийти к цели? Например: 8 или 12.',
     experience: 'Выбери свой уровень подготовки.',
-    equipment:
-      'Перечисли доступное оборудование через запятую. Например: свой вес, гантели, турник, брусья, резинки.',
+    equipment: 'Перечисли доступное оборудование через запятую. Например: свой вес, гантели, турник, брусья, резинки.',
     workout_days: 'Сколько дней в неделю реально готов тренироваться?',
     workout_minutes: 'Сколько минут в день можешь тратить на тренировку?',
     cardio: 'Есть ли ежедневное кардио? Напиши "нет" или "да: ходьба, велосипед".',
@@ -216,7 +225,7 @@ export function onboardingPrompt(step: OnboardingStep) {
     injuries: 'Есть ли травмы или проблемные зоны? Если нет, напиши "нет".',
     activity: 'Какой у тебя уровень активности вне тренировок? Например: офис, много хожу, физическая работа.',
     sleep: 'Сколько часов сна в среднем получается?',
-    timezone: 'Из какого ты города? Например: Москва, Saint Petersburg, Berlin, New York. Бот сам определит часовой пояс.'
+    timezone: 'Из какого ты города? Например: Москва, Санкт-Петербург, Екатеринбург, Новосибирск. Бот сам определит часовой пояс.'
   };
 
   return prompts[step];

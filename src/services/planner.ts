@@ -13,7 +13,8 @@ export async function buildTodayPlan(chatId: number, wellness?: WellnessState): 
   const eveningSkipped = state.skipEveningDates.includes(date);
   const wholeDaySkipped = state.skippedDates.includes(date);
 
-  let blocks = buildBlocks(dayType, resolvedWellness, state.profile);
+  const seed = `${chatId}:${date}:${dayType}:${resolvedWellness}:${state.profile.experienceLevel || 'beginner'}`;
+  let blocks = buildBlocks(dayType, resolvedWellness, state.profile, seed);
 
   if (wholeDaySkipped) {
     blocks = [];

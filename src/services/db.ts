@@ -57,6 +57,7 @@ export async function initializeDb() {
     CREATE TABLE IF NOT EXISTS users (
       chat_id BIGINT PRIMARY KEY,
       timezone TEXT NOT NULL,
+      notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       carry_over_load INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -71,6 +72,7 @@ export async function initializeDb() {
       height_cm INTEGER,
       weight_kg DOUBLE PRECISION,
       goal TEXT NOT NULL DEFAULT '',
+      goal_target_weeks INTEGER,
       experience_level TEXT NOT NULL DEFAULT '',
       workout_days_per_week INTEGER,
       workout_minutes_per_day INTEGER,
@@ -179,6 +181,14 @@ export async function initializeDb() {
   await db.query(`
     ALTER TABLE user_ui_state
     ADD COLUMN IF NOT EXISTS profile_edit_step TEXT
+  `);
+  await db.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE
+  `);
+  await db.query(`
+    ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS goal_target_weeks INTEGER
   `);
   logInfo('Database initialized', { connectionString: getMaskedDatabaseUrl() });
 }

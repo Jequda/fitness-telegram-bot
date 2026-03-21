@@ -1,6 +1,6 @@
 import { EquipmentType, GoalType, OnboardingStep, ProfileQuestionStep, SexType, UserState } from '../types/index.js';
 import { goalLabel } from './storage.js';
-import { normalizeTimezone, resolveTimezoneFromInput } from '../utils/date.js';
+import { resolveTimezoneFromInput } from '../utils/date.js';
 
 const onboardingSteps: OnboardingStep[] = [
   'name',
@@ -9,6 +9,7 @@ const onboardingSteps: OnboardingStep[] = [
   'height',
   'weight',
   'goal',
+  'goal_timeline',
   'experience',
   'equipment',
   'workout_days',
@@ -75,7 +76,7 @@ export function resetOnboarding(state: UserState) {
 
 export function applyGoal(state: UserState, goal: GoalType) {
   state.profile.goal = goal;
-  advanceOnboarding(state);
+  state.ui.onboarding = { step: 'goal_timeline' };
 }
 
 export function applySex(state: UserState, sex: SexType) {
@@ -115,6 +116,9 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
     case 'goal':
       state.profile.goal = input as GoalType;
       break;
+    case 'goal_timeline':
+      state.profile.goalTargetWeeks = Number(input);
+      break;
     case 'experience':
       state.profile.experienceLevel = experienceMap[normalized] ?? 'advanced';
       break;
@@ -127,7 +131,7 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
     case 'workout_minutes':
       state.profile.workoutMinutesPerDay = Number(input);
       break;
-    case 'cardio': {
+    case 'cardio':
       if (normalized === 'нет') {
         state.profile.hasDailyCardio = false;
         state.profile.cardioTypes = [];
@@ -140,7 +144,6 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
           .filter(Boolean);
       }
       break;
-    }
     case 'limitations':
       state.profile.limitations = normalized === 'нет' ? '' : input;
       break;
@@ -153,16 +156,13 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
     case 'sleep':
       state.profile.averageSleepHours = Number(input);
       break;
-    case 'timezone':
-      {
-        const timezone = resolveTimezoneFromInput(input);
-        if (!timezone) {
-          throw new Error('CITY_TIMEZONE_NOT_FOUND');
-        }
-        state.profile.timezone = timezone;
-        state.timezone = timezone;
-      }
+    case 'timezone': {
+      const timezone = resolveTimezoneFromInput(input);
+      if (!timezone) throw new Error('CITY_TIMEZONE_NOT_FOUND');
+      state.profile.timezone = timezone;
+      state.timezone = timezone;
       break;
+    }
     default:
       break;
   }
@@ -227,6 +227,7 @@ export function profileSummary(state: UserState) {
     `Имя: ${profile.name || 'не указано'}`,
     `Пол: ${sexLabel(profile.sex)}`,
     `Цель: ${goalLabel(profile.goal)}`,
+    `Срок цели: ${profile.goalTargetWeeks ? `${profile.goalTargetWeeks} нед.` : 'не указан'}`,
     `Возраст: ${profile.age ?? 'не указан'}`,
     `Рост: ${profile.heightCm ?? 'не указан'} см`,
     `Вес: ${profile.weightKg ?? 'не указан'} кг`,

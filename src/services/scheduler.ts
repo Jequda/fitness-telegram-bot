@@ -9,7 +9,7 @@ import { listStates } from './storage.js';
 
 async function sendToUsers(bot: Telegraf, callback: (chatId: number) => Promise<string | undefined>) {
   const states = await listStates();
-  for (const state of states.filter((item) => item.profile.isOnboarded)) {
+  for (const state of states.filter((item) => item.profile.isOnboarded && item.notificationsEnabled)) {
     const text = await callback(state.chatId);
     if (!text) continue;
     await bot.telegram.sendMessage(state.chatId, text);

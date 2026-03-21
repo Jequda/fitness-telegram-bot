@@ -43,6 +43,7 @@ export type OnboardingStep =
   | 'height'
   | 'weight'
   | 'goal'
+  | 'goal_timeline'
   | 'experience'
   | 'equipment'
   | 'workout_days'
@@ -128,6 +129,7 @@ export interface UserProfile {
   heightCm: number | null;
   weightKg: number | null;
   goal: GoalType | '';
+  goalTargetWeeks: number | null;
   experienceLevel: ExperienceLevel | '';
   equipment: EquipmentType[];
   workoutDaysPerWeek: number | null;
@@ -144,6 +146,7 @@ export interface UserProfile {
 export interface UserState {
   chatId: number;
   timezone: string;
+  notificationsEnabled: boolean;
   profile: UserProfile;
   dailyLogs: DailyLog[];
   skippedDates: string[];

@@ -13,6 +13,7 @@ function buildDefaultProfile(): UserProfile {
     heightCm: null,
     weightKg: null,
     goal: '',
+    goalTargetWeeks: null,
     experienceLevel: '',
     equipment: ['bodyweight'],
     workoutDaysPerWeek: null,
@@ -34,6 +35,7 @@ function normalizeState(state: Partial<UserState>, chatId: number): UserState {
   return {
     chatId,
     timezone,
+    notificationsEnabled: state.notificationsEnabled ?? true,
     profile: {
       ...buildDefaultProfile(),
       ...profile,
@@ -158,22 +160,26 @@ async function persistState(client: PoolClient, state: UserState) {
 
   await client.query(
     `
-      INSERT INTO users (chat_id, timezone, carry_over_load)
-      VALUES ($1, $2, $3)
+      INSERT INTO users (chat_id, timezone, notifications_enabled, carry_over_load)
+      VALUES ($1, $2, $3, $4)
       ON CONFLICT (chat_id)
-      DO UPDATE SET timezone = EXCLUDED.timezone, carry_over_load = EXCLUDED.carry_over_load, updated_at = NOW()
+      DO UPDATE SET
+        timezone = EXCLUDED.timezone,
+        notifications_enabled = EXCLUDED.notifications_enabled,
+        carry_over_load = EXCLUDED.carry_over_load,
+        updated_at = NOW()
     `,
-    [normalized.chatId, normalized.timezone, normalized.carryOverLoad]
+    [normalized.chatId, normalized.timezone, normalized.notificationsEnabled, normalized.carryOverLoad]
   );
 
   await client.query(
     `
       INSERT INTO user_profiles (
         chat_id, is_onboarded, name, sex, age, height_cm, weight_kg, goal, experience_level,
-        workout_days_per_week, workout_minutes_per_day, has_daily_cardio, injuries, limitations,
+        goal_target_weeks, workout_days_per_week, workout_minutes_per_day, has_daily_cardio, injuries, limitations,
         activity_level, average_sleep_hours, timezone
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (chat_id)
       DO UPDATE SET
         is_onboarded = EXCLUDED.is_onboarded,
@@ -183,6 +189,7 @@ async function persistState(client: PoolClient, state: UserState) {
         height_cm = EXCLUDED.height_cm,
         weight_kg = EXCLUDED.weight_kg,
         goal = EXCLUDED.goal,
+        goal_target_weeks = EXCLUDED.goal_target_weeks,
         experience_level = EXCLUDED.experience_level,
         workout_days_per_week = EXCLUDED.workout_days_per_week,
         workout_minutes_per_day = EXCLUDED.workout_minutes_per_day,
@@ -202,6 +209,7 @@ async function persistState(client: PoolClient, state: UserState) {
       normalized.profile.heightCm,
       normalized.profile.weightKg,
       normalized.profile.goal,
+      normalized.profile.goalTargetWeeks,
       normalized.profile.experienceLevel,
       normalized.profile.workoutDaysPerWeek,
       normalized.profile.workoutMinutesPerDay,
@@ -336,8 +344,8 @@ async function persistState(client: PoolClient, state: UserState) {
 }
 
 export async function readState(chatId: number): Promise<UserState> {
-  const userResult = await query<{ chat_id: string; timezone: string; carry_over_load: number }>(
-    'SELECT chat_id, timezone, carry_over_load FROM users WHERE chat_id = $1',
+  const userResult = await query<{ chat_id: string; timezone: string; notifications_enabled: boolean; carry_over_load: number }>(
+    'SELECT chat_id, timezone, notifications_enabled, carry_over_load FROM users WHERE chat_id = $1',
     [chatId]
   );
 
@@ -391,6 +399,7 @@ export async function readState(chatId: number): Promise<UserState> {
     {
       chatId,
       timezone: user.timezone,
+      notificationsEnabled: user.notifications_enabled ?? true,
       carryOverLoad: user.carry_over_load,
       profile: {
         isOnboarded: profileRow?.is_onboarded ?? false,
@@ -400,6 +409,7 @@ export async function readState(chatId: number): Promise<UserState> {
         heightCm: profileRow?.height_cm ?? null,
         weightKg: profileRow?.weight_kg ?? null,
         goal: profileRow?.goal ?? '',
+        goalTargetWeeks: profileRow?.goal_target_weeks ?? null,
         experienceLevel: profileRow?.experience_level ?? '',
         equipment: equipmentResult.rows.map((row) => row.equipment),
         workoutDaysPerWeek: profileRow?.workout_days_per_week ?? null,
@@ -462,7 +472,8 @@ export async function writeState(state: UserState) {
   logInfo('User state written to normalized database', {
     chatId: normalized.chatId,
     dailyLogs: normalized.dailyLogs.length,
-    onboarded: normalized.profile.isOnboarded
+    onboarded: normalized.profile.isOnboarded,
+    notificationsEnabled: normalized.notificationsEnabled
   });
 }
 

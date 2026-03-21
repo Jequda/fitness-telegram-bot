@@ -60,16 +60,23 @@ export function eveningOnlyText(plan: DailyPlan): string {
   return blockText(block);
 }
 
-export function exerciseCardText(exerciseId: string): string {
+export function exerciseCardText(exerciseId: string, plan?: DailyPlan): string {
   const exercise = exercisesMap[exerciseId];
   if (!exercise) return 'Упражнение не найдено.';
 
+  const plannedItem = plan?.blocks.flatMap((block) => block.items).find((item) => item.exerciseId === exerciseId);
+  const planText = plannedItem?.sets ?? exercise.repsHint;
+
   return [
     `Упражнение: ${exercise.title}`,
-    exercise.description,
-    `Плановый ориентир: ${exercise.repsHint}`,
+    '',
+    'Техника:',
+    ...exercise.steps.map((step, index) => `${index + 1}. ${step}`),
+    '',
+    'Программа тренировки:',
+    `${planText}`,
     `Логирование: ${exercise.logOptions.join(' / ')} ${unitLabels[exercise.logUnit]}`,
     '',
-    ...exercise.steps.map((step, index) => `${index + 1}. ${step}`)
+    exercise.description
   ].join('\n');
 }

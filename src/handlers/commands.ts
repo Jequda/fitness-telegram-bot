@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf';
 import {
+  exerciseDetailKeyboard,
   exerciseListKeyboard,
   exerciseValueKeyboard,
   exerciseWeightKeyboard,
@@ -20,7 +21,7 @@ import {
   wellnessKeyboard
 } from '../keyboards/main.js';
 import { exercisesMap } from '../data/exercises.js';
-import { GoalType, ProfileQuestionStep, SexType, WellnessState } from '../types/index.js';
+import { DailyPlan, GoalType, ProfileQuestionStep, SexType, WellnessState } from '../types/index.js';
 import { volumeNotice } from '../services/adaptation.js';
 import { logWarn } from '../services/logger.js';
 import { dayPlanText, eveningOnlyText, exerciseCardText, workOnlyText } from '../services/messages.js';
@@ -52,13 +53,14 @@ import { weeklyReport } from '../services/report.js';
 import { readState, upsertLog, writeState } from '../services/storage.js';
 import { localDateString } from '../utils/date.js';
 
-function formatExerciseCaption(exerciseId: string) {
-  return exerciseCardText(exerciseId);
+function formatExerciseCaption(exerciseId: string, plan?: DailyPlan) {
+  return exerciseCardText(exerciseId, plan);
 }
 
 async function ensureOnboarded(ctx: any) {
   const chatId = ctx.chat?.id;
   if (!chatId) return false;
+
   const state = await readState(chatId);
   if (state.profile.isOnboarded) return true;
 
@@ -72,6 +74,7 @@ async function ensureOnboarded(ctx: any) {
   } else {
     await ctx.reply(onboardingPrompt(step));
   }
+
   return false;
 }
 
@@ -82,10 +85,15 @@ function profileEditReply(step: ProfileQuestionStep) {
   return { text: profileEditPrompt(step), extra: profileEditCancelKeyboard() };
 }
 
+async function menuByChat(chatId: number) {
+  return mainMenu((await readState(chatId)).notificationsEnabled);
+}
+
 export function registerCommands(bot: Telegraf) {
   bot.start(async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
+
     const state = await readState(chatId);
     if (!state.profile.isOnboarded) {
       resetOnboarding(state);
@@ -93,19 +101,19 @@ export function registerCommands(bot: Telegraf) {
       return ctx.reply(`Добро пожаловать. Перед использованием нужно заполнить анкету.\n\n${onboardingPrompt('name')}`);
     }
 
-    return ctx.reply('Бот-тренер запущен. Выбирай, что делать дальше.', mainMenu);
+    return ctx.reply('Бот-тренер запущен. Выбирай, что делать дальше.', mainMenu(state.notificationsEnabled));
   });
 
   bot.command('profile', async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
-    const state = await readState(chatId);
-    return ctx.reply(profileSummary(state), profileActionsKeyboard());
+    return ctx.reply(profileSummary(await readState(chatId)), profileActionsKeyboard());
   });
 
   bot.command('reauth', async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
+
     const state = await readState(chatId);
     resetOnboarding(state);
     await writeState(state);
@@ -117,17 +125,17 @@ export function registerCommands(bot: Telegraf) {
     const chatId = ctx.chat!.id;
     const plan = await buildTodayPlan(chatId);
     await ensureDailyLog(chatId, plan.date);
-    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), mainMenu);
+    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), await menuByChat(chatId));
   });
 
   bot.command('work', async (ctx) => {
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply(workOnlyText(await buildTodayPlan(ctx.chat!.id)), mainMenu);
+    return ctx.reply(workOnlyText(await buildTodayPlan(ctx.chat!.id)), await menuByChat(ctx.chat!.id));
   });
 
   bot.command('evening', async (ctx) => {
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply(eveningOnlyText(await buildTodayPlan(ctx.chat!.id)), mainMenu);
+    return ctx.reply(eveningOnlyText(await buildTodayPlan(ctx.chat!.id)), await menuByChat(ctx.chat!.id));
   });
 
   bot.command('status', async (ctx) => {
@@ -155,7 +163,7 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skipEveningDates.includes(date)) state.skipEveningDates.push(date);
     state.carryOverLoad += 1;
     await writeState(state);
-    return ctx.reply('Вечерняя тренировка на сегодня снята. Остаток нагрузки учтён.', mainMenu);
+    return ctx.reply('Вечерняя тренировка на сегодня снята. Остаток нагрузки учтён.', mainMenu(state.notificationsEnabled));
   });
 
   bot.command('skip_today', async (ctx) => {
@@ -165,12 +173,12 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skippedDates.includes(date)) state.skippedDates.push(date);
     state.carryOverLoad += 2;
     await writeState(state);
-    return ctx.reply('На сегодня тренировки убраны. Бот не будет тебя дожимать.', mainMenu);
+    return ctx.reply('На сегодня тренировки убраны. Бот не будет тебя дожимать.', mainMenu(state.notificationsEnabled));
   });
 
   bot.command('week_report', async (ctx) => {
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply(await weeklyReport(ctx.chat!.id), mainMenu);
+    return ctx.reply(await weeklyReport(ctx.chat!.id), await menuByChat(ctx.chat!.id));
   });
 
   bot.command('debug_state', async (ctx) => {
@@ -185,7 +193,20 @@ export function registerCommands(bot: Telegraf) {
     const chatId = ctx.chat!.id;
     const plan = await buildTodayPlan(chatId);
     await ensureDailyLog(chatId, plan.date);
-    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), mainMenu);
+    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), await menuByChat(chatId));
+  });
+
+  bot.action('toggle_notifications', async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
+    const state = await readState(chatId);
+    state.notificationsEnabled = !state.notificationsEnabled;
+    await writeState(state);
+    return ctx.reply(
+      state.notificationsEnabled ? 'Уведомления включены.' : 'Уведомления отключены.',
+      mainMenu(state.notificationsEnabled)
+    );
   });
 
   bot.action('profile', async (ctx) => {
@@ -197,8 +218,6 @@ export function registerCommands(bot: Telegraf) {
 
   bot.action('profile:edit_menu', async (ctx) => {
     await ctx.answerCbQuery();
-    const chatId = ctx.chat?.id;
-    if (!chatId) return;
     return ctx.reply('Что изменить в анкете?', profileEditMenuKeyboard());
   });
 
@@ -212,17 +231,20 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply(profileSummary(state), profileActionsKeyboard());
   });
 
-  bot.action(/^profile:edit:(name|sex|age|height|weight|goal|experience|equipment|workout_days|workout_minutes|cardio|limitations|injuries|activity|sleep|timezone)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    const chatId = ctx.chat?.id;
-    if (!chatId) return;
-    const step = ctx.match[1] as ProfileQuestionStep;
-    const state = await readState(chatId);
-    startProfileEdit(state, step);
-    await writeState(state);
-    const reply = profileEditReply(step);
-    return ctx.reply(reply.text, reply.extra);
-  });
+  bot.action(
+    /^profile:edit:(name|sex|age|height|weight|goal|goal_timeline|experience|equipment|workout_days|workout_minutes|cardio|limitations|injuries|activity|sleep|timezone)$/,
+    async (ctx) => {
+      await ctx.answerCbQuery();
+      const chatId = ctx.chat?.id;
+      if (!chatId) return;
+      const step = ctx.match[1] as ProfileQuestionStep;
+      const state = await readState(chatId);
+      startProfileEdit(state, step);
+      await writeState(state);
+      const reply = profileEditReply(step);
+      return ctx.reply(reply.text, reply.extra);
+    }
+  );
 
   bot.action(/^profile:value:sex:(male|female)$/, async (ctx) => {
     await ctx.answerCbQuery();
@@ -262,7 +284,7 @@ export function registerCommands(bot: Telegraf) {
   bot.action('main_menu', async (ctx) => {
     await ctx.answerCbQuery();
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply('Главное меню.', mainMenu);
+    return ctx.reply('Главное меню.', await menuByChat(ctx.chat!.id));
   });
 
   bot.action('status', async (ctx) => {
@@ -294,7 +316,7 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skipEveningDates.includes(date)) state.skipEveningDates.push(date);
     state.carryOverLoad += 1;
     await writeState(state);
-    return ctx.reply('Вечерняя тренировка на сегодня снята. Остаток нагрузки учтён.', mainMenu);
+    return ctx.reply('Вечерняя тренировка на сегодня снята. Остаток нагрузки учтён.', mainMenu(state.notificationsEnabled));
   });
 
   bot.action('skip_day', async (ctx) => {
@@ -305,13 +327,13 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skippedDates.includes(date)) state.skippedDates.push(date);
     state.carryOverLoad += 2;
     await writeState(state);
-    return ctx.reply('На сегодня тренировки убраны. Бот не будет тебя дожимать.', mainMenu);
+    return ctx.reply('На сегодня тренировки убраны. Бот не будет тебя дожимать.', mainMenu(state.notificationsEnabled));
   });
 
   bot.action('week_report', async (ctx) => {
     await ctx.answerCbQuery();
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply(await weeklyReport(ctx.chat!.id), mainMenu);
+    return ctx.reply(await weeklyReport(ctx.chat!.id), await menuByChat(ctx.chat!.id));
   });
 
   bot.action(/^onboarding:goal:(.+)$/, async (ctx) => {
@@ -319,11 +341,12 @@ export function registerCommands(bot: Telegraf) {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const state = await readState(chatId);
-    applyGoal(state, ctx.match[1] as any);
+    applyGoal(state, ctx.match[1] as GoalType);
     await writeState(state);
+
     const step = getCurrentOnboardingStep(state);
     if (step === 'completed') {
-      return ctx.reply(`Анкета заполнена.\n\n${profileSummary(state)}`, mainMenu);
+      return ctx.reply(`Анкета заполнена.\n\n${profileSummary(state)}`, mainMenu(state.notificationsEnabled));
     }
     if (step === 'experience') {
       return ctx.reply(onboardingPrompt(step), onboardingExperienceKeyboard());
@@ -348,7 +371,7 @@ export function registerCommands(bot: Telegraf) {
     if (!chatId) return;
     const state = await readState(chatId);
     state.profile.experienceLevel =
-      ctx.match[1] === 'Новичок' ? 'beginner' : ctx.match[1] === 'Средний' ? 'intermediate' : 'advanced';
+      ctx.match[1] === 'РќРѕРІРёС‡РѕРє' ? 'beginner' : ctx.match[1] === 'РЎСЂРµРґРЅРёР№' ? 'intermediate' : 'advanced';
     state.ui.onboarding = { step: 'equipment' };
     await writeState(state);
     return ctx.reply(onboardingPrompt('equipment'));
@@ -371,26 +394,24 @@ export function registerCommands(bot: Telegraf) {
       skippedAll: state.skippedDates.includes(date),
       progressByExercise: existingLog.progressByExercise
     });
-    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), mainMenu);
+    return ctx.reply(dayPlanText(plan, await volumeNotice(chatId)), await menuByChat(chatId));
   });
 
   bot.action(/^ex:(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
     if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
     const exerciseId = ctx.match[1];
     const exercise = exercisesMap[exerciseId];
-    if (!exercise) return ctx.reply('Упражнение не найдено.', mainMenu);
+    if (!exercise) return ctx.reply('Упражнение не найдено.', await menuByChat(chatId));
+
+    const plan = await buildTodayPlan(chatId);
+    await ctx.reply(formatExerciseCaption(exerciseId, plan));
 
     if (exercise.photoUrl) {
       try {
         const photoFile = await getExercisePhotoFile(exerciseId, exercise.photoUrl);
-        return await ctx.replyWithPhoto(
-          { source: photoFile },
-          {
-            caption: formatExerciseCaption(exerciseId),
-            reply_markup: exerciseListKeyboard().reply_markup
-          }
-        );
+        await ctx.replyWithPhoto({ source: photoFile });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown photo error';
         logWarn('Exercise photo failed, falling back to text card', {
@@ -401,7 +422,7 @@ export function registerCommands(bot: Telegraf) {
       }
     }
 
-    return ctx.reply(formatExerciseCaption(exerciseId), exerciseListKeyboard());
+    return ctx.reply('Что делаем дальше?', exerciseDetailKeyboard());
   });
 
   bot.action(/^pg:(.+)$/, async (ctx) => {
@@ -411,7 +432,7 @@ export function registerCommands(bot: Telegraf) {
     const exerciseId = ctx.match[1];
     const plan = await buildTodayPlan(chatId);
     const progress = await getExerciseProgress(chatId, plan.date, exerciseId);
-    if (!exercisesMap[exerciseId]) return ctx.reply('Упражнение не найдено.', mainMenu);
+    if (!exercisesMap[exerciseId]) return ctx.reply('Упражнение не найдено.', await menuByChat(chatId));
     return ctx.reply(await exerciseProgressText(chatId, plan, exerciseId), progressExerciseKeyboard(exerciseId, progress));
   });
 
@@ -421,7 +442,7 @@ export function registerCommands(bot: Telegraf) {
     const chatId = ctx.chat!.id;
     const exerciseId = ctx.match[1];
     const plan = await buildTodayPlan(chatId);
-    if (!exercisesMap[exerciseId]) return ctx.reply('Упражнение не найдено.', mainMenu);
+    if (!exercisesMap[exerciseId]) return ctx.reply('Упражнение не найдено.', await menuByChat(chatId));
     const progressText = await exerciseProgressText(chatId, plan, exerciseId);
     const loggedSets = (await ensureDailyLog(chatId, plan.date)).progressByExercise[exerciseId]?.loggedSets.length ?? 0;
     const nextSetNumber = loggedSets + 1;
@@ -438,8 +459,9 @@ export function registerCommands(bot: Telegraf) {
     const exercise = exercisesMap[exerciseId];
     const state = await readState(chatId);
     const draft = state.ui.progressDraft;
+
     if (!draft || draft.exerciseId !== exerciseId) {
-      return ctx.reply('Сессия логирования устарела. Открой упражнение заново.', mainMenu);
+      return ctx.reply('Сессия логирования устарела. Открой упражнение заново.', await menuByChat(chatId));
     }
 
     await setDraftValue(chatId, exerciseId, value);
@@ -468,8 +490,9 @@ export function registerCommands(bot: Telegraf) {
     const exercise = exercisesMap[exerciseId];
     const state = await readState(chatId);
     const draft = state.ui.progressDraft;
+
     if (!draft || draft.exerciseId !== exerciseId || typeof draft.pendingValue !== 'number') {
-      return ctx.reply('Сначала выбери объём подхода.', mainMenu);
+      return ctx.reply('Сначала выбери объём подхода.', await menuByChat(chatId));
     }
 
     const plan = await buildTodayPlan(chatId);

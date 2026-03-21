@@ -27,7 +27,10 @@ export function registerOnboarding(bot: Telegraf) {
         return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
       } catch (error) {
         if (error instanceof Error && error.message === 'CITY_TIMEZONE_NOT_FOUND') {
-          return ctx.reply('Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Saint Petersburg, New York.', profileActionsKeyboard());
+          return ctx.reply(
+            'Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Санкт-Петербург, Екатеринбург.',
+            profileActionsKeyboard()
+          );
         }
         throw error;
       }
@@ -51,7 +54,7 @@ export function registerOnboarding(bot: Telegraf) {
       await writeState(state);
     } catch (error) {
       if (error instanceof Error && error.message === 'CITY_TIMEZONE_NOT_FOUND') {
-        return ctx.reply('Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Saint Petersburg, New York.');
+        return ctx.reply('Не удалось определить часовой пояс по этому городу. Напиши город точнее, например: Москва, Санкт-Петербург, Екатеринбург.');
       }
       throw error;
     }
@@ -67,7 +70,7 @@ export function registerOnboarding(bot: Telegraf) {
       return ctx.reply(onboardingPrompt(nextStep), onboardingExperienceKeyboard());
     }
     if (nextStep === 'completed') {
-      return ctx.reply(`Анкета заполнена.\n\n${profileSummary(state)}`, mainMenu);
+      return ctx.reply(`Анкета заполнена.\n\n${profileSummary(state)}`, mainMenu(state.notificationsEnabled));
     }
 
     return ctx.reply(onboardingPrompt(nextStep));

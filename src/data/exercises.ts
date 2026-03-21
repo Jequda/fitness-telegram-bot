@@ -472,6 +472,45 @@ export const exercises: Exercise[] = [
     equipment: ['stationary_bike'],
     difficulty: 'beginner',
     muscleGroups: ['кардио', 'ноги']
+  }),
+  baseExercise({
+    id: 'reverse_crunch',
+    title: 'Обратные скручивания',
+    category: 'core',
+    description: 'Смещение нагрузки в нижнюю часть пресса и хороший контроль таза.',
+    steps: ['Ляг на спину, руки вдоль корпуса.', 'Подтяни колени к груди и слегка подкрути таз вверх.', 'Опускайся медленно, не бросая ноги.', 'Не прогибай поясницу.'],
+    repsHint: '3 подхода по 12–20 повторений',
+    logUnit: 'reps',
+    logOptions: [10, 12, 15, 20],
+    equipment: bw,
+    difficulty: 'beginner',
+    muscleGroups: ['пресс', 'кор']
+  }),
+  baseExercise({
+    id: 'hollow_hold',
+    title: 'Удержание hollow',
+    category: 'core',
+    description: 'Сильное антиразгибание для пресса и корпуса.',
+    steps: ['Ляг на спину и прижми поясницу к полу.', 'Подними плечи и ноги от пола.', 'Держи корпус собранным и дыши спокойно.', 'Если тяжело, согни ноги или опусти руки ниже.'],
+    repsHint: '3 подхода по 15–40 секунд',
+    logUnit: 'seconds',
+    logOptions: [15, 20, 30, 40],
+    equipment: bw,
+    difficulty: 'intermediate',
+    muscleGroups: ['пресс', 'кор']
+  }),
+  baseExercise({
+    id: 'bicycle_crunch',
+    title: 'Велосипед на пресс',
+    category: 'core',
+    description: 'Динамическая работа на прямую и косые мышцы пресса.',
+    steps: ['Ляг на спину, руки у висков.', 'Подтяни колено и тянись к нему противоположным локтем.', 'Меняй стороны ритмично, но без рывков.', 'Не тяни шею руками.'],
+    repsHint: '3 подхода по 12–20 на сторону',
+    logUnit: 'reps',
+    logOptions: [10, 12, 15, 20],
+    equipment: bw,
+    difficulty: 'beginner',
+    muscleGroups: ['пресс', 'косые мышцы']
   })
 ];
 
