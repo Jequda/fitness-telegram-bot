@@ -2,13 +2,26 @@ import { Markup } from 'telegraf';
 import { DailyPlan, ExerciseProgress, GoalType, OnboardingStep, ProfileQuestionStep } from '../types/index.js';
 import { exercisesMap } from '../data/exercises.js';
 
+export const mainMenuLabels = {
+  today: 'Сегодня',
+  status: 'Самочувствие',
+  exercises: 'Упражнения',
+  progress: 'Прогресс',
+  profile: 'Анкета',
+  weekReport: 'Отчет за неделю',
+  skipEvening: 'Убрать вечер',
+  skipToday: 'Убрать день',
+  notificationsOn: 'Включить уведомления',
+  notificationsOff: 'Отключить уведомления'
+} as const;
+
 export function mainMenu(notificationsEnabled = true) {
   return Markup.keyboard([
-    ['/today', '/status'],
-    ['/exercises', '/progress'],
-    ['/profile', '/week_report'],
-    ['/skip_evening', '/skip_today'],
-    [notificationsEnabled ? '/notifications_off' : '/notifications_on']
+    [mainMenuLabels.today, mainMenuLabels.status],
+    [mainMenuLabels.exercises, mainMenuLabels.progress],
+    [mainMenuLabels.profile, mainMenuLabels.weekReport],
+    [mainMenuLabels.skipEvening, mainMenuLabels.skipToday],
+    [notificationsEnabled ? mainMenuLabels.notificationsOff : mainMenuLabels.notificationsOn]
   ])
     .resize()
     .persistent();
