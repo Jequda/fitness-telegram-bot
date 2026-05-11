@@ -1,4 +1,4 @@
-export type DayType = 'workday' | 'friday' | 'weekend';
+﻿export type DayType = 'workday' | 'friday' | 'weekend';
 export type WellnessState =
   | 'normal'
   | 'tired'
@@ -36,6 +36,7 @@ export type GoalType =
   | 'endurance';
 export type SexType = 'male' | 'female';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'high';
 export type OnboardingStep =
   | 'name'
   | 'sex'
@@ -138,7 +139,7 @@ export interface UserProfile {
   cardioTypes: string[];
   injuries: string;
   limitations: string;
-  activityLevel: string;
+  activityLevel: ActivityLevel | '';
   averageSleepHours: number | null;
   timezone: string;
 }

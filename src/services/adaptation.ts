@@ -10,5 +10,5 @@ export async function shouldReduceVolume(chatId: number): Promise<boolean> {
 
 export async function volumeNotice(chatId: number): Promise<string> {
   if (!(await shouldReduceVolume(chatId))) return '';
-  return '⚠️ Последние дни ты отмечал усталость. Бот режет недельный объём автоматически: меньше добивок, меньше лишней нагрузки.';
+  return '� >A;54=85 4=8 BK >B<5G0; CAB0;>ABL. >B @565B =545;L=K9 >1JQ< 02B><0B8G5A:8: <5=LH5 4>182>:, <5=LH5 ;8H=59 =03@C7:8.';
 }

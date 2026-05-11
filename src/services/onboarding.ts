@@ -1,4 +1,4 @@
-import { EquipmentType, GoalType, OnboardingStep, ProfileQuestionStep, SexType, UserState } from '../types/index.js';
+import { ActivityLevel, EquipmentType, GoalType, OnboardingStep, ProfileQuestionStep, SexType, UserState } from '../types/index.js';
 import { goalLabel } from './storage.js';
 import { resolveTimezoneFromInput } from '../utils/date.js';
 
@@ -31,6 +31,25 @@ const experienceMap: Record<string, 'beginner' | 'intermediate' | 'advanced'> = 
   продвинутый: 'advanced'
 };
 
+const activityMap: Record<string, ActivityLevel> = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  high: 'high',
+  'офис': 'sedentary',
+  'сидячая работа': 'sedentary',
+  '<0;> 42830NAL': 'sedentary',
+  'немного хожу': 'light',
+  ';Q3:0O 0:B82=>ABL': 'light',
+  ';53:0O 0:B82=>ABL': 'light',
+  'много хожу': 'moderate',
+  'на ногах': 'moderate',
+  '0:B82=K9 45=L': 'moderate',
+  'физическая работа': 'high',
+  'тяжелая работа': 'high',
+  'тяжёлая работа': 'high'
+};
+
 const equipmentMap: Record<string, EquipmentType> = {
   bodyweight: 'bodyweight',
   dumbbells: 'dumbbells',
@@ -42,8 +61,8 @@ const equipmentMap: Record<string, EquipmentType> = {
   stationary_bike: 'stationary_bike',
   treadmill: 'treadmill',
   jump_rope: 'jump_rope',
-  'свой вес': 'bodyweight',
-  'вес тела': 'bodyweight',
+  'A2>9 25A': 'bodyweight',
+  '25A B5;0': 'bodyweight',
   гантели: 'dumbbells',
   турник: 'pullup_bar',
   брусья: 'dip_bars',
@@ -84,6 +103,36 @@ export function applySex(state: UserState, sex: SexType) {
   advanceOnboarding(state);
 }
 
+function parseIntegerInRange(input: string, min: number, max: number, errorCode: string) {
+  if (!/^\d+$/.test(input)) {
+    throw new Error(errorCode);
+  }
+  const value = Number(input);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(errorCode);
+  }
+  return value;
+}
+
+function parseNumberInRange(input: string, min: number, max: number, errorCode: string) {
+  const normalized = input.replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(normalized)) {
+    throw new Error(errorCode);
+  }
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new Error(errorCode);
+  }
+  return value;
+}
+
+function parseActivityLevel(input: string): ActivityLevel {
+  const normalized = input.trim().toLowerCase();
+  const value = activityMap[normalized];
+  if (!value) throw new Error('INVALID_ACTIVITY');
+  return value;
+}
+
 function parseEquipment(input: string): EquipmentType[] {
   const parsed = input
     .split(',')
@@ -105,19 +154,19 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
       state.profile.sex = normalized === 'женщина' ? 'female' : 'male';
       break;
     case 'age':
-      state.profile.age = Number(input);
+      state.profile.age = parseIntegerInRange(input, 12, 90, 'INVALID_AGE');
       break;
     case 'height':
-      state.profile.heightCm = Number(input);
+      state.profile.heightCm = parseIntegerInRange(input, 120, 230, 'INVALID_HEIGHT');
       break;
     case 'weight':
-      state.profile.weightKg = Number(input);
+      state.profile.weightKg = parseNumberInRange(input, 35, 300, 'INVALID_WEIGHT');
       break;
     case 'goal':
       state.profile.goal = input as GoalType;
       break;
     case 'goal_timeline':
-      state.profile.goalTargetWeeks = Number(input);
+      state.profile.goalTargetWeeks = parseIntegerInRange(input, 2, 104, 'INVALID_GOAL_TIMELINE');
       break;
     case 'experience':
       state.profile.experienceLevel = experienceMap[normalized] ?? 'advanced';
@@ -126,10 +175,10 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
       state.profile.equipment = parseEquipment(input);
       break;
     case 'workout_days':
-      state.profile.workoutDaysPerWeek = Number(input);
+      state.profile.workoutDaysPerWeek = parseIntegerInRange(input, 1, 7, 'INVALID_WORKOUT_DAYS');
       break;
     case 'workout_minutes':
-      state.profile.workoutMinutesPerDay = Number(input);
+      state.profile.workoutMinutesPerDay = parseIntegerInRange(input, 10, 240, 'INVALID_WORKOUT_MINUTES');
       break;
     case 'cardio':
       if (normalized === 'нет') {
@@ -151,10 +200,10 @@ function applyStepAnswer(state: UserState, step: ProfileQuestionStep, rawInput: 
       state.profile.injuries = normalized === 'нет' ? '' : input;
       break;
     case 'activity':
-      state.profile.activityLevel = input;
+      state.profile.activityLevel = parseActivityLevel(input);
       break;
     case 'sleep':
-      state.profile.averageSleepHours = Number(input);
+      state.profile.averageSleepHours = parseNumberInRange(input, 3, 16, 'INVALID_SLEEP');
       break;
     case 'timezone': {
       const timezone = resolveTimezoneFromInput(input);
@@ -201,45 +250,53 @@ function sexLabel(sex: UserState['profile']['sex']) {
 }
 
 function experienceLabel(level: UserState['profile']['experienceLevel']) {
-  if (level === 'beginner') return 'новичок';
+  if (level === 'beginner') return '=>28G>:';
   if (level === 'intermediate') return 'средний';
-  if (level === 'advanced') return 'продвинутый';
+  if (level === 'advanced') return '?@>428=CBK9';
   return 'не указан';
 }
 
+export function activityLabel(level: UserState['profile']['activityLevel']) {
+  if (level === 'sedentary') return 'сидячая работа / офис';
+  if (level === 'light') return 'немного хожу';
+  if (level === 'moderate') return 'много хожу / на ногах';
+  if (level === 'high') return 'физическая работа';
+  return 'не указана';
+}
+
 const equipmentLabels: Record<EquipmentType, string> = {
-  bodyweight: 'свой вес',
+  bodyweight: 'A2>9 25A',
   dumbbells: 'гантели',
   pullup_bar: 'турник',
   dip_bars: 'брусья',
   resistance_bands: 'резинки',
   kettlebell: 'гиря',
   bench: 'скамья',
-  stationary_bike: 'велотренажер',
-  treadmill: 'беговая дорожка',
+  stationary_bike: '25;>B@5=065@',
+  treadmill: '153>20O 4>@>6:0',
   jump_rope: 'скакалка'
 };
 
 export function profileSummary(state: UserState) {
   const profile = state.profile;
   return [
-    'Анкета пользователя',
+    '=:5B0 ?>;L7>20B5;O',
     `Имя: ${profile.name || 'не указано'}`,
     `Пол: ${sexLabel(profile.sex)}`,
     `Цель: ${goalLabel(profile.goal)}`,
-    `Срок цели: ${profile.goalTargetWeeks ? `${profile.goalTargetWeeks} нед.` : 'не указан'}`,
+    `!@>: F5;8: ${profile.goalTargetWeeks ? `${profile.goalTargetWeeks} нед.` : 'не указан'}`,
     `Возраст: ${profile.age ?? 'не указан'}`,
-    `Рост: ${profile.heightCm ?? 'не указан'} см`,
+    ` >AB: ${profile.heightCm ?? '=5 C:070='} A<`,
     `Вес: ${profile.weightKg ?? 'не указан'} кг`,
     `Опыт: ${experienceLabel(profile.experienceLevel)}`,
-    `Оборудование: ${profile.equipment.map((item) => equipmentLabels[item]).join(', ')}`,
-    `Тренировок в неделю: ${profile.workoutDaysPerWeek ?? 'не указано'}`,
-    `Минут в день: ${profile.workoutMinutesPerDay ?? 'не указано'}`,
+    `1>@C4>20=85: ${profile.equipment.map((item) => equipmentLabels[item]).join(', ')}`,
+    `"@5=8@>2>: 2 =545;N: ${profile.workoutDaysPerWeek ?? '=5 C:070=>'}`,
+    `8=CB 2 45=L: ${profile.workoutMinutesPerDay ?? '=5 C:070=>'}`,
     `Кардио: ${profile.hasDailyCardio ? profile.cardioTypes.join(', ') || 'есть' : 'нет'}`,
     `Ограничения: ${profile.limitations || 'нет'}`,
-    `Травмы: ${profile.injuries || 'нет'}`,
-    `Активность: ${profile.activityLevel || 'не указана'}`,
-    `Сон: ${profile.averageSleepHours ?? 'не указан'} ч`,
-    `Часовой пояс: ${profile.timezone}`
+    `"@02<K: ${profile.injuries || '=5B'}`,
+    `:B82=>ABL: ${activityLabel(profile.activityLevel)}`,
+    `!>=: ${profile.averageSleepHours ?? '=5 C:070='} G`,
+    `'0A>2>9 ?>OA: ${profile.timezone}`
   ].join('\n');
 }

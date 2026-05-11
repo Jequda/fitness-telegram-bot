@@ -1,4 +1,4 @@
-import { Telegraf } from 'telegraf';
+﻿import { Telegraf } from 'telegraf';
 import {
   exerciseDetailKeyboard,
   exerciseListKeyboard,
@@ -6,11 +6,13 @@ import {
   exerciseWeightKeyboard,
   mainMenu,
   mainMenuLabels,
+  onboardingActivityKeyboard,
   onboardingExperienceKeyboard,
   onboardingGoalKeyboard,
   onboardingPrompt,
   onboardingSexKeyboard,
   profileActionsKeyboard,
+  profileEditActivityKeyboard,
   profileEditCancelKeyboard,
   profileEditExperienceKeyboard,
   profileEditGoalKeyboard,
@@ -72,6 +74,8 @@ async function ensureOnboarded(ctx: any) {
     await ctx.reply(onboardingPrompt(step), onboardingGoalKeyboard());
   } else if (step === 'experience') {
     await ctx.reply(onboardingPrompt(step), onboardingExperienceKeyboard());
+  } else if (step === 'activity') {
+    await ctx.reply(onboardingPrompt(step), onboardingActivityKeyboard());
   } else {
     await ctx.reply(onboardingPrompt(step));
   }
@@ -83,6 +87,7 @@ function profileEditReply(step: ProfileQuestionStep) {
   if (step === 'sex') return { text: profileEditPrompt(step), extra: profileEditSexKeyboard() };
   if (step === 'goal') return { text: profileEditPrompt(step), extra: profileEditGoalKeyboard() };
   if (step === 'experience') return { text: profileEditPrompt(step), extra: profileEditExperienceKeyboard() };
+  if (step === 'activity') return { text: profileEditPrompt(step), extra: profileEditActivityKeyboard() };
   return { text: profileEditPrompt(step), extra: profileEditCancelKeyboard() };
 }
 
@@ -375,6 +380,16 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
   });
 
+  bot.action(/^profile:value:activity:(sedentary|light|moderate|high)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    applyProfileAnswer(state, 'activity', ctx.match[1]);
+    await writeState(state);
+    return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+  });
+
   bot.action('main_menu', async (ctx) => {
     await ctx.answerCbQuery();
     if (!(await ensureOnboarded(ctx))) return;
@@ -445,6 +460,9 @@ export function registerCommands(bot: Telegraf) {
     if (step === 'experience') {
       return ctx.reply(onboardingPrompt(step), onboardingExperienceKeyboard());
     }
+    if (step === 'activity') {
+      return ctx.reply(onboardingPrompt(step), onboardingActivityKeyboard());
+    }
     return ctx.reply(onboardingPrompt(step));
   });
 
@@ -459,16 +477,26 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply(onboardingPrompt('age'));
   });
 
-  bot.action(/^onboarding:experience:(.+)$/, async (ctx) => {
+  bot.action(/^onboarding:experience:(beginner|intermediate|advanced)$/, async (ctx) => {
     await ctx.answerCbQuery();
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const state = await readState(chatId);
-    state.profile.experienceLevel =
-      ctx.match[1] === 'РќРѕРІРёС‡РѕРє' ? 'beginner' : ctx.match[1] === 'РЎСЂРµРґРЅРёР№' ? 'intermediate' : 'advanced';
+    state.profile.experienceLevel = ctx.match[1] as 'beginner' | 'intermediate' | 'advanced';
     state.ui.onboarding = { step: 'equipment' };
     await writeState(state);
     return ctx.reply(onboardingPrompt('equipment'));
+  });
+
+  bot.action(/^onboarding:activity:(sedentary|light|moderate|high)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    state.profile.activityLevel = ctx.match[1] as 'sedentary' | 'light' | 'moderate' | 'high';
+    state.ui.onboarding = { step: 'sleep' };
+    await writeState(state);
+    return ctx.reply(onboardingPrompt('sleep'));
   });
 
   bot.action(/^wellness:(.+)$/, async (ctx) => {
