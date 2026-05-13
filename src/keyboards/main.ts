@@ -29,7 +29,7 @@ const exerciseGroups: ExerciseGroup[] = [
     subgroups: [
       { id: 'push', label: 'Жим', exerciseIds: ['pushups', 'incline_pushups', 'pike_pushups', 'dips', 'db_floor_press', 'db_overhead_press'] },
       { id: 'pull', label: 'Тяга', exerciseIds: ['pullups', 'db_row', 'band_row', 'band_pull_apart'] },
-      { id: 'arms', label: ' C:8', exerciseIds: ['db_biceps_curl', 'db_triceps_extension'] }
+      { id: 'arms', label: 'Руки', exerciseIds: ['db_biceps_curl', 'db_triceps_extension'] }
     ]
   },
   {
@@ -46,7 +46,7 @@ const exerciseGroups: ExerciseGroup[] = [
     label: 'Кор и пресс',
     subgroups: [
       { id: 'holds', label: 'Планки и удержания', exerciseIds: ['plank', 'side_plank', 'hollow_hold'] },
-      { id: 'stability', label: '!B018;870F8O', exerciseIds: ['dead_bug', 'bird_dog'] },
+      { id: 'stability', label: 'Стабилизация', exerciseIds: ['dead_bug', 'bird_dog'] },
       { id: 'dynamic', label: 'Динамика', exerciseIds: ['reverse_crunch', 'bicycle_crunch', 'hanging_knee_raise'] }
     ]
   },
@@ -54,13 +54,13 @@ const exerciseGroups: ExerciseGroup[] = [
     id: 'cardio',
     label: 'Кардио',
     subgroups: [
-      { id: 'bodyweight', label: '57 8=25=B0@O', exerciseIds: ['mountain_climbers', 'walking'] },
-      { id: 'equipment', label: '! 8=25=B0@5<', exerciseIds: ['jump_rope', 'stationary_bike'] }
+      { id: 'bodyweight', label: 'Без инвентаря', exerciseIds: ['mountain_climbers', 'walking'] },
+      { id: 'equipment', label: 'С инвентарём', exerciseIds: ['jump_rope', 'stationary_bike'] }
     ]
   },
   {
     id: 'recovery',
-    label: '>AAB0=>2;5=85',
+    label: 'Восстановление',
     subgroups: [{ id: 'light', label: 'Дыхание и минимум', exerciseIds: ['box_breathing', 'minimum_complex'] }]
   }
 ];
@@ -80,16 +80,16 @@ function getExerciseSubgroup(groupId?: string, subgroupId?: string) {
 }
 
 export const mainMenuLabels = {
-  today: '!53>4=O',
-  status: '!0<>GC2AB285',
+  today: 'Сегодня',
+  status: 'Самочувствие',
   exercises: 'Упражнения',
   progress: 'Прогресс',
   profile: 'Анкета',
   weekReport: 'Отчёт за неделю',
-  skipEvening: '#1@0BL 25G5@',
+  skipEvening: 'Убрать вечер',
   skipToday: 'Убрать день',
-  notificationsOn: ':;NG8BL C254><;5=8O',
-  notificationsOff: 'B:;NG8BL C254><;5=8O'
+  notificationsOn: 'Включить уведомления',
+  notificationsOff: 'Отключить уведомления'
 } as const;
 
 export function mainMenu(notificationsEnabled = true) {
@@ -116,19 +116,19 @@ export function profileEditMenuKeyboard() {
     ['Имя', 'name'],
     ['Пол', 'sex'],
     ['Возраст', 'age'],
-    [' >AB', 'height'],
+    ['Рост', 'height'],
     ['Вес', 'weight'],
     ['Цель', 'goal'],
-    ['!@>: F5;8', 'goal_timeline'],
+    ['Срок цели', 'goal_timeline'],
     ['Опыт', 'experience'],
-    ['1>@C4>20=85', 'equipment'],
-    ['=59 2 =545;N', 'workout_days'],
-    ['8=CB 2 45=L', 'workout_minutes'],
+    ['Оборудование', 'equipment'],
+    ['Дней в неделю', 'workout_days'],
+    ['Минут в день', 'workout_minutes'],
     ['Кардио', 'cardio'],
     ['Ограничения', 'limitations'],
-    ['"@02<K', 'injuries'],
-    [':B82=>ABL', 'activity'],
-    ['!>=', 'sleep'],
+    ['Травмы', 'injuries'],
+    ['Активность', 'activity'],
+    ['Сон', 'sleep'],
     ['Город', 'timezone']
   ];
 
@@ -155,11 +155,11 @@ export function profileEditGoalKeyboard() {
   const buttons: Array<[string, GoalType]> = [
     ['Жиросжигание', 'fat_loss'],
     ['Мышцы', 'muscle_gain'],
-    ['!8;0', 'strength'],
+    ['Сила', 'strength'],
     ['Форма', 'general_fitness'],
     ['Мобильность', 'mobility'],
     ['Осанка', 'posture'],
-    ['K=>A;82>ABL', 'endurance']
+    ['Выносливость', 'endurance']
   ];
 
   return Markup.inlineKeyboard([
@@ -170,9 +170,9 @@ export function profileEditGoalKeyboard() {
 
 export function profileEditExperienceKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback('>28G>:', 'profile:value:experience:beginner')],
-    [Markup.button.callback('!@54=89', 'profile:value:experience:intermediate')],
-    [Markup.button.callback('@>428=CBK9', 'profile:value:experience:advanced')],
+    [Markup.button.callback('Новичок', 'profile:value:experience:beginner')],
+    [Markup.button.callback('Средний', 'profile:value:experience:intermediate')],
+    [Markup.button.callback('Продвинутый', 'profile:value:experience:advanced')],
     [Markup.button.callback('Отмена', 'profile:cancel')]
   ]);
 }
@@ -190,14 +190,14 @@ export function profileEditActivityKeyboard() {
 export function exerciseDetailKeyboard() {
   return Markup.inlineKeyboard([
     [Markup.button.callback('Выбрать другое упражнение', 'exercises')],
-    [Markup.button.callback(';02=>5 <5=N', 'main_menu')]
+    [Markup.button.callback('Главное меню', 'main_menu')]
   ]);
 }
 
 export const wellnessKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('Нормально', 'wellness:normal'), Markup.button.callback('Устал', 'wellness:tired')],
-  [Markup.button.callback('5 2KA?0;AO', 'wellness:sleepy'), Markup.button.callback('Тянет / болит', 'wellness:sore')],
-  [Markup.button.callback('01>;520N', 'wellness:getting_sick'), Markup.button.callback('Нет сил', 'wellness:no_energy')]
+  [Markup.button.callback('Не выспался', 'wellness:sleepy'), Markup.button.callback('Тянет / болит', 'wellness:sore')],
+  [Markup.button.callback('Заболеваю', 'wellness:getting_sick'), Markup.button.callback('Нет сил', 'wellness:no_energy')]
 ]);
 
 export function onboardingSexKeyboard() {
@@ -211,11 +211,11 @@ export function onboardingGoalKeyboard() {
   const buttons: Array<[string, GoalType]> = [
     ['Жиросжигание', 'fat_loss'],
     ['Мышцы', 'muscle_gain'],
-    ['!8;0', 'strength'],
+    ['Сила', 'strength'],
     ['Форма', 'general_fitness'],
     ['Мобильность', 'mobility'],
     ['Осанка', 'posture'],
-    ['K=>A;82>ABL', 'endurance']
+    ['Выносливость', 'endurance']
   ];
 
   return Markup.inlineKeyboard(buttons.map(([label, value]) => [Markup.button.callback(label, `onboarding:goal:${value}`)]));
@@ -223,9 +223,9 @@ export function onboardingGoalKeyboard() {
 
 export function onboardingExperienceKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback('>28G>:', 'onboarding:experience:beginner')],
-    [Markup.button.callback('!@54=89', 'onboarding:experience:intermediate')],
-    [Markup.button.callback('@>428=CBK9', 'onboarding:experience:advanced')]
+    [Markup.button.callback('Новичок', 'onboarding:experience:beginner')],
+    [Markup.button.callback('Средний', 'onboarding:experience:intermediate')],
+    [Markup.button.callback('Продвинутый', 'onboarding:experience:advanced')]
   ]);
 }
 
@@ -257,7 +257,7 @@ export function exerciseListKeyboard(groupId?: string, subgroupId?: string) {
       ...group.subgroups.map((item) => [
         Markup.button.callback(`${item.label} · ${item.exerciseIds.filter((exerciseId) => exercisesMap[exerciseId]).length}`, `exsg:${group.id}:${item.id}`)
       ]),
-      [Markup.button.callback('� > 2A5< 3@C??0<', 'exercises')],
+      [Markup.button.callback('← По всем группам', 'exercises')],
       [Markup.button.callback('В меню', 'main_menu')]
     ]);
   }
@@ -284,7 +284,7 @@ export function progressOverviewKeyboard(plan: DailyPlan, progressByExercise: Re
         return [Markup.button.callback(`${marker} ${exercisesMap[item.exerciseId]?.title ?? item.exerciseId}`, `pg:${item.exerciseId}`)];
       })
     ),
-    [Markup.button.callback('1=>28BL A?8A>: ?@>3@5AA0', 'progress')],
+    [Markup.button.callback('Обновить список прогресса', 'progress')],
     [Markup.button.callback('Назад', 'main_menu')]
   ]);
 }
@@ -305,7 +305,7 @@ export function progressExerciseKeyboard(exerciseId: string, progress: ExerciseP
           Markup.button.callback('✅ Тяжело', `done:${exerciseId}:hard`)
         ]]
       : []),
-    [Markup.button.callback('!1@>A8BL 70?8AL', `reset:${exerciseId}`)],
+    [Markup.button.callback('Сбросить запись', `reset:${exerciseId}`)],
     [Markup.button.callback('Пропустить', `sk:${exerciseId}`), Markup.button.callback('Назад', 'progress')]
   ]);
 }
@@ -336,35 +336,35 @@ export function exerciseWeightKeyboard(exerciseId: string) {
       rows[rowIndex].push(Markup.button.callback(`${option} кг`, `pw:${exerciseId}:${option}`));
       return rows;
     }, []),
-    [Markup.button.callback('57 25A0', `pw:${exerciseId}:skip`)],
+    [Markup.button.callback('Без веса', `pw:${exerciseId}:skip`)],
     [Markup.button.callback('Назад', `pg:${exerciseId}`)]
   ]);
 }
 
 export function onboardingPrompt(step: OnboardingStep) {
   const prompts: Record<Exclude<OnboardingStep, 'completed'>, string> = {
-    name: '0: B51O 7>2CB?',
+    name: 'Как тебя зовут?',
     sex: 'Выбери пол.',
-    age: '!:>;L:> B515 ;5B?',
-    height: '0:>9 C B51O @>AB 2 A0=B8<5B@0E?',
-    weight: '0:>9 C B51O 25A 2 :8;>3@0<<0E?',
+    age: 'Сколько тебе лет?',
+    height: 'Какой у тебя рост в сантиметрах?',
+    weight: 'Какой у тебя вес в килограммах?',
     goal: 'Выбери цель кнопкой ниже.',
     goal_timeline: 'За сколько недель хочешь прийти к цели? Например: 8 или 12.',
-    experience: 'K15@8 A2>9 C@>25=L ?>43>B>2:8.',
-    equipment: '5@5G8A;8 4>ABC?=>5 >1>@C4>20=85 G5@57 70?OBCN. 0?@8<5@: A2>9 25A, 30=B5;8, BC@=8:, 1@CALO, @578=:8.',
-    workout_days: '!:>;L:> 4=59 2 =545;N @50;L=> 3>B>2 B@5=8@>20BLAO?',
-    workout_minutes: '!:>;L:> <8=CB 2 45=L <>65HL B@0B8BL =0 B@5=8@>2:C?',
-    cardio: 'ABL ;8 5654=52=>5 :0@48>? 0?8H8 "=5B" 8;8 "40: E>4L10, 25;>A8?54".',
-    limitations: 'ABL ;8 >3@0=8G5=8O ?> 42865=8O<, 1>;8 8;8 70?@5BK 2@0G0? A;8 =5B, =0?8H8 "=5B".',
-    injuries: 'ABL ;8 B@02<K 8;8 ?@>1;5<=K5 7>=K? A;8 =5B, =0?8H8 "=5B".',
-    activity: '0:>9 C B51O C@>25=L 0:B82=>AB8 2=5 B@5=8@>2>:?',
-    sleep: '!:>;L:> G0A>2 A=0 2 A@54=5< ?>;CG05BAO?',
-    timezone: '7 :0:>3> BK 3>@>40? 0?@8<5@: >A:20, !0=:B-5B5@1C@3, :0B5@8=1C@3, >2>A818@A:. >B A0< >?@545;8B G0A>2>9 ?>OA.'
+    experience: 'Выбери свой уровень подготовки.',
+    equipment: 'Перечисли доступное оборудование через запятую. Например: свой вес, гантели, турник, брусья, резинки.',
+    workout_days: 'Сколько дней в неделю реально готов тренироваться?',
+    workout_minutes: 'Сколько минут в день можешь тратить на тренировку?',
+    cardio: 'Есть ли ежедневное кардио? Напиши "нет" или "да: ходьба, велосипед".',
+    limitations: 'Есть ли ограничения по движениям, боли или запреты врача? Если нет, напиши "нет".',
+    injuries: 'Есть ли травмы или проблемные зоны? Если нет, напиши "нет".',
+    activity: 'Какой у тебя уровень активности вне тренировок?',
+    sleep: 'Сколько часов сна в среднем получается?',
+    timezone: 'Из какого ты города? Например: Москва, Санкт-Петербург, Екатеринбург, Новосибирск. Бот сам определит часовой пояс.'
   };
 
   return prompts[step];
 }
 
 export function profileEditPrompt(step: ProfileQuestionStep) {
-  return ` 540:B8@>20=85 0=:5BK.\n\n${onboardingPrompt(step)}\n\n>A;5 A>E@0=5=8O 1>B >1=>28B ?@>D8;L.`;
+  return `Редактирование анкеты.\n\n${onboardingPrompt(step)}\n\nПосле сохранения бот обновит профиль.`;
 }

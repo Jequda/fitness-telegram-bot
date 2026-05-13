@@ -1,4 +1,4 @@
-﻿import { Telegraf } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import {
   exerciseDetailKeyboard,
   exerciseListKeyboard,
@@ -221,12 +221,12 @@ export function registerCommands(bot: Telegraf) {
 
   bot.hears(mainMenuLabels.status, async (ctx) => {
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply('РљР°Рє С‚С‹ СЃРµР±СЏ С‡СѓРІСЃС‚РІСѓРµС€СЊ СЃРµРіРѕРґРЅСЏ?', wellnessKeyboard);
+    return ctx.reply('Как ты себя чувствуешь сегодня?', wellnessKeyboard);
   });
 
   bot.hears(mainMenuLabels.exercises, async (ctx) => {
     if (!(await ensureOnboarded(ctx))) return;
-    return ctx.reply('Р’С‹Р±РµСЂРё СѓРїСЂР°Р¶РЅРµРЅРёРµ.', exerciseListKeyboard());
+    return ctx.reply('Выбери упражнение.', exerciseListKeyboard());
   });
 
   bot.hears(mainMenuLabels.progress, async (ctx) => {
@@ -255,7 +255,7 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skipEveningDates.includes(date)) state.skipEveningDates.push(date);
     state.carryOverLoad += 1;
     await writeState(state);
-    return ctx.reply('Р’РµС‡РµСЂРЅСЏСЏ С‚СЂРµРЅРёСЂРѕРІРєР° РЅР° СЃРµРіРѕРґРЅСЏ СЃРЅСЏС‚Р°. РћСЃС‚Р°С‚РѕРє РЅР°РіСЂСѓР·РєРё СѓС‡С‚С‘РЅ.', mainMenu(state.notificationsEnabled));
+    return ctx.reply('Вечерняя тренировка на сегодня снята. Остаток нагрузки учтён.', mainMenu(state.notificationsEnabled));
   });
 
   bot.hears(mainMenuLabels.skipToday, async (ctx) => {
@@ -265,7 +265,7 @@ export function registerCommands(bot: Telegraf) {
     if (!state.skippedDates.includes(date)) state.skippedDates.push(date);
     state.carryOverLoad += 2;
     await writeState(state);
-    return ctx.reply('РќР° СЃРµРіРѕРґРЅСЏ С‚СЂРµРЅРёСЂРѕРІРєРё СѓР±СЂР°РЅС‹. Р‘РѕС‚ РЅРµ Р±СѓРґРµС‚ С‚РµР±СЏ РґРѕР¶РёРјР°С‚СЊ.', mainMenu(state.notificationsEnabled));
+    return ctx.reply('На сегодня тренировки убраны. Бот не будет тебя дожимать.', mainMenu(state.notificationsEnabled));
   });
 
   bot.hears(mainMenuLabels.notificationsOn, async (ctx) => {
@@ -274,7 +274,7 @@ export function registerCommands(bot: Telegraf) {
     const state = await readState(chatId);
     state.notificationsEnabled = true;
     await writeState(state);
-    return ctx.reply('РЈРІРµРґРѕРјР»РµРЅРёСЏ РІРєР»СЋС‡РµРЅС‹.', mainMenu(true));
+    return ctx.reply('Уведомления включены.', mainMenu(true));
   });
 
   bot.hears(mainMenuLabels.notificationsOff, async (ctx) => {
@@ -283,7 +283,7 @@ export function registerCommands(bot: Telegraf) {
     const state = await readState(chatId);
     state.notificationsEnabled = false;
     await writeState(state);
-    return ctx.reply('РЈРІРµРґРѕРјР»РµРЅРёСЏ РѕС‚РєР»СЋС‡РµРЅС‹.', mainMenu(false));
+    return ctx.reply('Уведомления отключены.', mainMenu(false));
   });
 
   bot.action('today', async (ctx) => {
