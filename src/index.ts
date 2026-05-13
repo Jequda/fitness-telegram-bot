@@ -71,8 +71,21 @@ registerSchedulers(bot);
 if (process.argv.includes('--test-flow')) {
   logInfo('Test flow mode enabled; bot not launched');
 } else {
-  await bot.launch();
-  logInfo('Bot launched');
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await bot.launch();
+      logInfo('Bot launched');
+      break;
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (!['ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'EAI_AGAIN'].includes(code ?? '')) {
+        throw err;
+      }
+      const delay = Math.min(attempt * 5000, 60000);
+      logInfo(`Telegram unreachable, retry ${attempt} in ${delay / 1000}s`, { error: (err as Error).message });
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
 }
 
 process.once('SIGINT', async () => {
