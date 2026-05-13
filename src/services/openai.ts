@@ -1,6 +1,9 @@
+import https from 'node:https';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { UserProfile } from '../types/index.js';
 
-const COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_HOST = 'api.openai.com';
+const COMPLETIONS_PATH = '/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
 function buildSystemPrompt(profile: UserProfile): string {
@@ -31,6 +34,38 @@ function buildSystemPrompt(profile: UserProfile): string {
   return lines.join('\n');
 }
 
+function httpsRequest(body: string, apiKey: string): Promise<{ status: number; text: string }> {
+  const proxyUrl = process.env.HTTPS_PROXY;
+  const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+  const bodyBuf = Buffer.from(body, 'utf-8');
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: OPENAI_HOST,
+        path: COMPLETIONS_PATH,
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': bodyBuf.length
+        },
+        agent
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () =>
+          resolve({ status: res.statusCode ?? 0, text: Buffer.concat(chunks).toString('utf-8') })
+        );
+      }
+    );
+    req.on('error', reject);
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
 export async function askTrainer(
   userMessage: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
@@ -47,20 +82,15 @@ export async function askTrainer(
     { role: 'user' as const, content: userMessage }
   ];
 
-  const response = await fetch(COMPLETIONS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ model, messages, max_tokens: 600 })
-  });
+  const { status, text } = await httpsRequest(
+    JSON.stringify({ model, messages, max_tokens: 600 }),
+    apiKey
+  );
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI ${response.status}: ${text}`);
+  if (status < 200 || status >= 300) {
+    throw new Error(`OpenAI ${status}: ${text}`);
   }
 
-  const data = (await response.json()) as { choices: Array<{ message: { content: string } }> };
+  const data = JSON.parse(text) as { choices: Array<{ message: { content: string } }> };
   return data.choices[0].message.content;
 }
