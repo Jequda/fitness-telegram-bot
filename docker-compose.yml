@@ -1,4 +1,13 @@
 services:
+  bot:
+    build: .
+    container_name: fitness-telegram-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+
   postgres:
     image: postgres:16-alpine
     container_name: ${POSTGRES_CONTAINER_NAME:-fitness-bot-postgres}

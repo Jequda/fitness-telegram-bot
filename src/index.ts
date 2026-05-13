@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { registerCommands } from './handlers/commands.js';
 import { registerOnboarding } from './handlers/onboarding.js';
 import { getLogFilePath, initLogger, logError, logInfo } from './services/logger.js';
@@ -28,7 +29,10 @@ logInfo('Application bootstrapping started', {
   databaseUser: dbConfig.user
 });
 
-const bot = new Telegraf(token);
+const proxyUrl = process.env.HTTPS_PROXY;
+const bot = new Telegraf(token, {
+  ...(proxyUrl ? { telegram: { agent: new HttpsProxyAgent(proxyUrl) } } : {})
+});
 
 bot.use(async (ctx, next) => {
   const chatId = ctx.chat?.id;
