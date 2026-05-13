@@ -1,5 +1,7 @@
 import { Telegraf } from 'telegraf';
 import {
+  aiChatExitLabel,
+  aiChatKeyboard,
   exerciseDetailKeyboard,
   exerciseListKeyboard,
   exerciseValueKeyboard,
@@ -663,5 +665,33 @@ export function registerCommands(bot: Telegraf) {
     await skipExercise(chatId, plan, exerciseId);
     const progress = await getExerciseProgress(chatId, plan.date, exerciseId);
     return ctx.reply(await exerciseProgressText(chatId, plan, exerciseId), progressExerciseKeyboard(exerciseId, progress));
+  });
+
+  bot.command('ai', async (ctx) => {
+    if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
+    const state = await readState(chatId);
+    state.ai.enabled = true;
+    state.ai.history = [];
+    await writeState(state);
+    const name = state.profile.name ? `, ${state.profile.name}` : '';
+    return ctx.reply(
+      `Привет${name}! Я твой AI тренер. Спрашивай о тренировках, питании, восстановлении.\n\nДля выхода нажми «${aiChatExitLabel}».`,
+      aiChatKeyboard()
+    );
+  });
+
+  bot.hears(mainMenuLabels.aiTrainer, async (ctx) => {
+    if (!(await ensureOnboarded(ctx))) return;
+    const chatId = ctx.chat!.id;
+    const state = await readState(chatId);
+    state.ai.enabled = true;
+    state.ai.history = [];
+    await writeState(state);
+    const name = state.profile.name ? `, ${state.profile.name}` : '';
+    return ctx.reply(
+      `Привет${name}! Я твой AI тренер. Спрашивай о тренировках, питании, восстановлении.\n\nДля выхода нажми «${aiChatExitLabel}».`,
+      aiChatKeyboard()
+    );
   });
 }

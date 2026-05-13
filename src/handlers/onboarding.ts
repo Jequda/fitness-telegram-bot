@@ -1,6 +1,9 @@
 import { Telegraf } from 'telegraf';
 import {
+  aiChatExitLabel,
+  aiChatKeyboard,
   mainMenu,
+  mainMenuLabels,
   onboardingActivityKeyboard,
   onboardingExperienceKeyboard,
   onboardingGoalKeyboard,
@@ -9,7 +12,9 @@ import {
   profileActionsKeyboard
 } from '../keyboards/main.js';
 import { applyOnboardingAnswer, applyProfileAnswer, getCurrentOnboardingStep, profileSummary } from '../services/onboarding.js';
+import { askTrainer } from '../services/openai.js';
 import { readState, writeState } from '../services/storage.js';
+import { logError } from '../services/logger.js';
 
 function validationMessage(error: Error) {
   switch (error.message) {
@@ -53,6 +58,45 @@ export function registerOnboarding(bot: Telegraf) {
     if (text.startsWith('/')) return;
 
     const state = await readState(chatId);
+
+    if (text === aiChatExitLabel) {
+      state.ai.enabled = false;
+      await writeState(state);
+      return ctx.reply('Вышел из чата с тренером.', mainMenu(state.notificationsEnabled));
+    }
+
+    if (text === mainMenuLabels.aiTrainer) {
+      state.ai.enabled = true;
+      state.ai.history = [];
+      await writeState(state);
+      const name = state.profile.name ? `, ${state.profile.name}` : '';
+      return ctx.reply(
+        `Привет${name}! Я твой AI тренер. Спрашивай о тренировках, питании, восстановлении — отвечу с учётом твоего профиля.\n\nДля выхода нажми «${aiChatExitLabel}».`,
+        aiChatKeyboard()
+      );
+    }
+
+    if (state.ai.enabled) {
+      await ctx.sendChatAction('typing');
+      try {
+        const reply = await askTrainer(text, state.ai.history, state.profile);
+        state.ai.history.push(
+          { role: 'user', content: text, createdAt: new Date().toISOString() },
+          { role: 'assistant', content: reply, createdAt: new Date().toISOString() }
+        );
+        if (state.ai.history.length > 20) state.ai.history = state.ai.history.slice(-20);
+        state.ai.lastError = undefined;
+        await writeState(state);
+        return ctx.reply(reply, aiChatKeyboard());
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logError('OpenAI request failed', { chatId, error: message });
+        state.ai.lastError = message;
+        await writeState(state);
+        return ctx.reply('Не удалось получить ответ от AI. Попробуй ещё раз.', aiChatKeyboard());
+      }
+    }
+
     const profileEditStep = state.ui.profileEdit?.step;
     if (profileEditStep) {
       try {

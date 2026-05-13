@@ -89,8 +89,11 @@ export const mainMenuLabels = {
   skipEvening: 'Убрать вечер',
   skipToday: 'Убрать день',
   notificationsOn: 'Включить уведомления',
-  notificationsOff: 'Отключить уведомления'
+  notificationsOff: 'Отключить уведомления',
+  aiTrainer: '🤖 AI Тренер'
 } as const;
+
+export const aiChatExitLabel = 'Выйти из чата';
 
 export function mainMenu(notificationsEnabled = true) {
   return Markup.keyboard([
@@ -98,10 +101,15 @@ export function mainMenu(notificationsEnabled = true) {
     [mainMenuLabels.exercises, mainMenuLabels.progress],
     [mainMenuLabels.profile, mainMenuLabels.weekReport],
     [mainMenuLabels.skipEvening, mainMenuLabels.skipToday],
-    [notificationsEnabled ? mainMenuLabels.notificationsOff : mainMenuLabels.notificationsOn]
+    [notificationsEnabled ? mainMenuLabels.notificationsOff : mainMenuLabels.notificationsOn],
+    [mainMenuLabels.aiTrainer]
   ])
     .resize()
     .persistent();
+}
+
+export function aiChatKeyboard() {
+  return Markup.keyboard([[aiChatExitLabel]]).resize().persistent();
 }
 
 export function profileActionsKeyboard() {
