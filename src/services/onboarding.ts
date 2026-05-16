@@ -38,13 +38,13 @@ const activityMap: Record<string, ActivityLevel> = {
   high: 'high',
   'офис': 'sedentary',
   'сидячая работа': 'sedentary',
-  '<0;> 42830NAL': 'sedentary',
+  'мало двигаюсь': 'sedentary',
   'немного хожу': 'light',
-  ';Q3:0O 0:B82=>ABL': 'light',
-  ';53:0O 0:B82=>ABL': 'light',
+  'лёгкая активность': 'light',
+  'легкая активность': 'light',
   'много хожу': 'moderate',
   'на ногах': 'moderate',
-  '0:B82=K9 45=L': 'moderate',
+  'активный день': 'moderate',
   'физическая работа': 'high',
   'тяжелая работа': 'high',
   'тяжёлая работа': 'high'
@@ -61,8 +61,8 @@ const equipmentMap: Record<string, EquipmentType> = {
   stationary_bike: 'stationary_bike',
   treadmill: 'treadmill',
   jump_rope: 'jump_rope',
-  'A2>9 25A': 'bodyweight',
-  '25A B5;0': 'bodyweight',
+  'свой вес': 'bodyweight',
+  'вес тела': 'bodyweight',
   гантели: 'dumbbells',
   турник: 'pullup_bar',
   брусья: 'dip_bars',
@@ -250,9 +250,9 @@ function sexLabel(sex: UserState['profile']['sex']) {
 }
 
 function experienceLabel(level: UserState['profile']['experienceLevel']) {
-  if (level === 'beginner') return '=>28G>:';
+  if (level === 'beginner') return 'новичок';
   if (level === 'intermediate') return 'средний';
-  if (level === 'advanced') return '?@>428=CBK9';
+  if (level === 'advanced') return 'продвинутый';
   return 'не указан';
 }
 
@@ -265,38 +265,38 @@ export function activityLabel(level: UserState['profile']['activityLevel']) {
 }
 
 const equipmentLabels: Record<EquipmentType, string> = {
-  bodyweight: 'A2>9 25A',
+  bodyweight: 'свой вес',
   dumbbells: 'гантели',
   pullup_bar: 'турник',
   dip_bars: 'брусья',
   resistance_bands: 'резинки',
   kettlebell: 'гиря',
   bench: 'скамья',
-  stationary_bike: '25;>B@5=065@',
-  treadmill: '153>20O 4>@>6:0',
+  stationary_bike: 'велотренажер',
+  treadmill: 'беговая дорожка',
   jump_rope: 'скакалка'
 };
 
 export function profileSummary(state: UserState) {
   const profile = state.profile;
   return [
-    '=:5B0 ?>;L7>20B5;O',
+    'Анкета пользователя',
     `Имя: ${profile.name || 'не указано'}`,
     `Пол: ${sexLabel(profile.sex)}`,
     `Цель: ${goalLabel(profile.goal)}`,
-    `!@>: F5;8: ${profile.goalTargetWeeks ? `${profile.goalTargetWeeks} нед.` : 'не указан'}`,
+    `Срок цели: ${profile.goalTargetWeeks ? `${profile.goalTargetWeeks} нед.` : 'не указан'}`,
     `Возраст: ${profile.age ?? 'не указан'}`,
-    ` >AB: ${profile.heightCm ?? '=5 C:070='} A<`,
+    `Рост: ${profile.heightCm ?? 'не указан'} см`,
     `Вес: ${profile.weightKg ?? 'не указан'} кг`,
     `Опыт: ${experienceLabel(profile.experienceLevel)}`,
-    `1>@C4>20=85: ${profile.equipment.map((item) => equipmentLabels[item]).join(', ')}`,
-    `"@5=8@>2>: 2 =545;N: ${profile.workoutDaysPerWeek ?? '=5 C:070=>'}`,
-    `8=CB 2 45=L: ${profile.workoutMinutesPerDay ?? '=5 C:070=>'}`,
+    `Оборудование: ${profile.equipment.map((item) => equipmentLabels[item]).join(', ')}`,
+    `Тренировок в неделю: ${profile.workoutDaysPerWeek ?? 'не указано'}`,
+    `Минут в день: ${profile.workoutMinutesPerDay ?? 'не указано'}`,
     `Кардио: ${profile.hasDailyCardio ? profile.cardioTypes.join(', ') || 'есть' : 'нет'}`,
     `Ограничения: ${profile.limitations || 'нет'}`,
-    `"@02<K: ${profile.injuries || '=5B'}`,
-    `:B82=>ABL: ${activityLabel(profile.activityLevel)}`,
-    `!>=: ${profile.averageSleepHours ?? '=5 C:070='} G`,
-    `'0A>2>9 ?>OA: ${profile.timezone}`
+    `Травмы: ${profile.injuries || 'нет'}`,
+    `Активность: ${activityLabel(profile.activityLevel)}`,
+    `Сон: ${profile.averageSleepHours ?? 'не указан'} ч`,
+    `Часовой пояс: ${profile.timezone}`
   ].join('\n');
 }
