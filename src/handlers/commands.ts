@@ -2,10 +2,18 @@ import { Markup, Telegraf } from 'telegraf';
 import {
   aiChatExitLabel,
   aiChatKeyboard,
+  cardioTypesKeyboard,
+  cardioYesNoKeyboard,
+  equipmentSelectKeyboard,
+  injuriesSelectKeyboard,
+  injuriesYesNoKeyboard,
+  limitationsSelectKeyboard,
+  limitationsYesNoKeyboard,
   exerciseDetailKeyboard,
   exerciseListKeyboard,
   exerciseValueKeyboard,
   exerciseWeightKeyboard,
+  experienceConfirmKeyboard,
   mainMenu,
   mainMenuLabels,
   onboardingActivityKeyboard,
@@ -57,6 +65,12 @@ import {
 import { weeklyReport } from '../services/report.js';
 import { readState, upsertLog, writeState } from '../services/storage.js';
 import { localDateString } from '../utils/date.js';
+
+const experienceDescriptions: Record<'beginner' | 'intermediate' | 'advanced', string> = {
+  beginner: 'Новичок — только начинаю или был долгий перерыв (больше 6 месяцев). Осваиваю базовые движения, нагрузки небольшие.',
+  intermediate: 'Средний уровень — регулярно тренируюсь 6+ месяцев. Знаком с техникой основных упражнений, работаю с умеренными весами.',
+  advanced: 'Продвинутый — тренируюсь 2+ года. Хорошо знаю технику, работаю с серьёзными весами, понимаю принципы прогрессии нагрузки.'
+};
 
 function formatExerciseCaption(exerciseId: string, plan?: DailyPlan) {
   return exerciseCardText(exerciseId, plan);
@@ -341,6 +355,30 @@ export function registerCommands(bot: Telegraf) {
       const step = ctx.match[1] as ProfileQuestionStep;
       const state = await readState(chatId);
       startProfileEdit(state, step);
+      if (step === 'equipment') {
+        state.ui.equipmentDraft = { selected: [...state.profile.equipment], context: 'profile' };
+        await writeState(state);
+        const reply = profileEditReply(step);
+        return ctx.reply(reply.text, equipmentSelectKeyboard(state.ui.equipmentDraft.selected));
+      }
+      if (step === 'cardio') {
+        state.ui.cardioDraft = undefined;
+        await writeState(state);
+        const reply = profileEditReply(step);
+        return ctx.reply(reply.text, cardioYesNoKeyboard('profile'));
+      }
+      if (step === 'limitations') {
+        state.ui.limitationsDraft = undefined;
+        await writeState(state);
+        const reply = profileEditReply(step);
+        return ctx.reply(reply.text, limitationsYesNoKeyboard('profile'));
+      }
+      if (step === 'injuries') {
+        state.ui.injuriesDraft = undefined;
+        await writeState(state);
+        const reply = profileEditReply(step);
+        return ctx.reply(reply.text, injuriesYesNoKeyboard('profile'));
+      }
       await writeState(state);
       const reply = profileEditReply(step);
       return ctx.reply(reply.text, reply.extra);
@@ -369,14 +407,16 @@ export function registerCommands(bot: Telegraf) {
 
   bot.action(/^profile:value:experience:(beginner|intermediate|advanced)$/, async (ctx) => {
     await ctx.answerCbQuery();
+    const level = ctx.match[1] as 'beginner' | 'intermediate' | 'advanced';
+    return ctx.reply(experienceDescriptions[level], experienceConfirmKeyboard(level, 'profile'));
+  });
+
+  bot.action(/^profile:experience:confirm:(beginner|intermediate|advanced)$/, async (ctx) => {
+    await ctx.answerCbQuery();
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const state = await readState(chatId);
-    const labels = {
-      beginner: 'новичок',
-      intermediate: 'средний',
-      advanced: 'продвинутый'
-    };
+    const labels = { beginner: 'новичок', intermediate: 'средний', advanced: 'продвинутый' };
     applyProfileAnswer(state, 'experience', labels[ctx.match[1] as keyof typeof labels]);
     await writeState(state);
     return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
@@ -462,6 +502,324 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply(await weeklyReport(ctx.chat!.id), await menuByChat(ctx.chat!.id));
   });
 
+  bot.action(/^cardio:yes:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    state.ui.cardioDraft = { selected: [...state.profile.cardioTypes], context };
+    await writeState(state);
+    return ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(state.ui.cardioDraft.selected));
+  });
+
+  bot.action(/^cardio:no:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    state.profile.hasDailyCardio = false;
+    state.profile.cardioTypes = [];
+    state.ui.cardioDraft = undefined;
+    if (context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'limitations' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('limitations'));
+    }
+  });
+
+  bot.action(/^ct:toggle:(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.cardioDraft;
+    if (!draft) return;
+    const item = ctx.match[1];
+    if (draft.selected.includes(item)) {
+      draft.selected = draft.selected.filter((e) => e !== item);
+    } else {
+      draft.selected.push(item);
+    }
+    await writeState(state);
+    try {
+      await ctx.editMessageReplyMarkup(cardioTypesKeyboard(draft.selected).reply_markup);
+    } catch {
+      await ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
+    }
+  });
+
+  bot.action('ct:done', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.cardioDraft;
+    if (!draft) return;
+    state.profile.hasDailyCardio = true;
+    state.profile.cardioTypes = draft.selected;
+    state.ui.cardioDraft = undefined;
+    if (draft.context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'limitations' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('limitations'));
+    }
+  });
+
+  bot.action('ct:back', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const context = state.ui.cardioDraft?.context ?? 'profile';
+    state.ui.cardioDraft = undefined;
+    await writeState(state);
+    return ctx.reply(onboardingPrompt('cardio'), cardioYesNoKeyboard(context));
+  });
+
+  bot.action(/^inj:yes:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    const current = state.profile.injuries ? state.profile.injuries.split(', ').filter(Boolean) : [];
+    state.ui.injuriesDraft = { selected: current, context };
+    await writeState(state);
+    return ctx.reply('Выбери травмы:', injuriesSelectKeyboard(state.ui.injuriesDraft.selected));
+  });
+
+  bot.action(/^inj:no:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    state.profile.injuries = '';
+    state.ui.injuriesDraft = undefined;
+    if (context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'activity' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('activity'), onboardingActivityKeyboard());
+    }
+  });
+
+  bot.action(/^ij:toggle:(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.injuriesDraft;
+    if (!draft) return;
+    const item = ctx.match[1];
+    if (draft.selected.includes(item)) {
+      draft.selected = draft.selected.filter((e) => e !== item);
+    } else {
+      draft.selected.push(item);
+    }
+    await writeState(state);
+    try {
+      await ctx.editMessageReplyMarkup(injuriesSelectKeyboard(draft.selected).reply_markup);
+    } catch {
+      await ctx.reply('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
+    }
+  });
+
+  bot.action('ij:done', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.injuriesDraft;
+    if (!draft) return;
+    state.profile.injuries = draft.selected.join(', ');
+    state.ui.injuriesDraft = undefined;
+    if (draft.context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'activity' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('activity'), onboardingActivityKeyboard());
+    }
+  });
+
+  bot.action('ij:back', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const context = state.ui.injuriesDraft?.context ?? 'profile';
+    state.ui.injuriesDraft = undefined;
+    await writeState(state);
+    return ctx.reply(onboardingPrompt('injuries'), injuriesYesNoKeyboard(context));
+  });
+
+  bot.action(/^lim:yes:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    const current = state.profile.limitations ? state.profile.limitations.split(', ').filter(Boolean) : [];
+    state.ui.limitationsDraft = { selected: current, context };
+    await writeState(state);
+    return ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(state.ui.limitationsDraft.selected));
+  });
+
+  bot.action(/^lim:no:(onboarding|profile)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const context = ctx.match[1] as 'onboarding' | 'profile';
+    const state = await readState(chatId);
+    state.profile.limitations = '';
+    state.ui.limitationsDraft = undefined;
+    if (context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'injuries' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('injuries'));
+    }
+  });
+
+  bot.action(/^ls:toggle:(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.limitationsDraft;
+    if (!draft) return;
+    const item = ctx.match[1];
+    if (draft.selected.includes(item)) {
+      draft.selected = draft.selected.filter((e) => e !== item);
+    } else {
+      draft.selected.push(item);
+    }
+    await writeState(state);
+    try {
+      await ctx.editMessageReplyMarkup(limitationsSelectKeyboard(draft.selected).reply_markup);
+    } catch {
+      await ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
+    }
+  });
+
+  bot.action('ls:done', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.limitationsDraft;
+    if (!draft) return;
+    state.profile.limitations = draft.selected.join(', ');
+    state.ui.limitationsDraft = undefined;
+    if (draft.context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'injuries' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('injuries'));
+    }
+  });
+
+  bot.action('ls:back', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const context = state.ui.limitationsDraft?.context ?? 'profile';
+    state.ui.limitationsDraft = undefined;
+    await writeState(state);
+    return ctx.reply(onboardingPrompt('limitations'), limitationsYesNoKeyboard(context));
+  });
+
+  bot.action(/^eq:toggle:(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.equipmentDraft;
+    if (!draft) return;
+    const item = ctx.match[1] as import('../types/index.js').EquipmentType;
+    if (draft.selected.includes(item)) {
+      draft.selected = draft.selected.filter((e) => e !== item);
+    } else {
+      draft.selected.push(item);
+    }
+    await writeState(state);
+    try {
+      await ctx.editMessageReplyMarkup(equipmentSelectKeyboard(draft.selected).reply_markup);
+    } catch {
+      await ctx.reply('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
+    }
+  });
+
+  bot.action('eq:done', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const draft = state.ui.equipmentDraft;
+    if (!draft) return;
+    const selected = draft.selected.length ? draft.selected : ['bodyweight' as const];
+    state.profile.equipment = selected;
+    state.ui.equipmentDraft = undefined;
+    if (draft.context === 'profile') {
+      state.profile.isOnboarded = true;
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(`Анкета обновлена.\n\n${profileSummary(state)}`, profileActionsKeyboard());
+    } else {
+      state.ui.onboarding = { step: 'workout_days' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('workout_days'));
+    }
+  });
+
+  bot.action('eq:cancel', async (ctx) => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const state = await readState(chatId);
+    const context = state.ui.equipmentDraft?.context;
+    state.ui.equipmentDraft = undefined;
+    if (context === 'profile') {
+      state.ui.profileEdit = undefined;
+      await writeState(state);
+      return ctx.reply(profileSummary(state), profileActionsKeyboard());
+    } else {
+      if (!state.profile.equipment.length) state.profile.equipment = ['bodyweight'];
+      state.ui.onboarding = { step: 'workout_days' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('workout_days'));
+    }
+  });
+
   bot.action(/^onboarding:goal:(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
     const chatId = ctx.chat?.id;
@@ -496,13 +854,25 @@ export function registerCommands(bot: Telegraf) {
 
   bot.action(/^onboarding:experience:(beginner|intermediate|advanced)$/, async (ctx) => {
     await ctx.answerCbQuery();
+    const level = ctx.match[1] as 'beginner' | 'intermediate' | 'advanced';
+    return ctx.reply(experienceDescriptions[level], experienceConfirmKeyboard(level, 'onboarding'));
+  });
+
+  bot.action(/^onboarding:experience:confirm:(beginner|intermediate|advanced)$/, async (ctx) => {
+    await ctx.answerCbQuery();
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const state = await readState(chatId);
     state.profile.experienceLevel = ctx.match[1] as 'beginner' | 'intermediate' | 'advanced';
     state.ui.onboarding = { step: 'equipment' };
+    state.ui.equipmentDraft = { selected: state.profile.equipment.length ? [...state.profile.equipment] : ['bodyweight'], context: 'onboarding' };
     await writeState(state);
-    return ctx.reply(onboardingPrompt('equipment'));
+    return ctx.reply(onboardingPrompt('equipment'), equipmentSelectKeyboard(state.ui.equipmentDraft.selected));
+  });
+
+  bot.action('onboarding:experience:back', async (ctx) => {
+    await ctx.answerCbQuery();
+    return ctx.reply(onboardingPrompt('experience'), onboardingExperienceKeyboard());
   });
 
   bot.action(/^onboarding:activity:(sedentary|light|moderate|high)$/, async (ctx) => {

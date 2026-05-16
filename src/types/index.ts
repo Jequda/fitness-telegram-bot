@@ -25,7 +25,13 @@ export type EquipmentType =
   | 'bench'
   | 'stationary_bike'
   | 'treadmill'
-  | 'jump_rope';
+  | 'jump_rope'
+  | 'barbell'
+  | 'trx'
+  | 'ab_wheel'
+  | 'foam_roller'
+  | 'step_platform'
+  | 'medicine_ball';
 export type GoalType =
   | 'fat_loss'
   | 'muscle_gain'
@@ -176,6 +182,22 @@ export interface UserState {
       pendingSetNumber: number;
       pendingValue?: number;
       awaitingCustomWeight?: boolean;
+    };
+    equipmentDraft?: {
+      selected: EquipmentType[];
+      context: 'onboarding' | 'profile';
+    };
+    cardioDraft?: {
+      selected: string[];
+      context: 'onboarding' | 'profile';
+    };
+    limitationsDraft?: {
+      selected: string[];
+      context: 'onboarding' | 'profile';
+    };
+    injuriesDraft?: {
+      selected: string[];
+      context: 'onboarding' | 'profile';
     };
   };
 }

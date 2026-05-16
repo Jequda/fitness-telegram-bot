@@ -2,6 +2,10 @@ import { Telegraf } from 'telegraf';
 import {
   aiChatExitLabel,
   aiChatKeyboard,
+  cardioYesNoKeyboard,
+  equipmentSelectKeyboard,
+  injuriesYesNoKeyboard,
+  limitationsYesNoKeyboard,
   mainMenu,
   mainMenuLabels,
   onboardingActivityKeyboard,
@@ -141,6 +145,27 @@ export function registerOnboarding(bot: Telegraf) {
     if (state.profile.isOnboarded) return;
 
     const step = getCurrentOnboardingStep(state);
+
+    if (step === 'equipment') {
+      if (!state.ui.equipmentDraft) {
+        state.ui.equipmentDraft = { selected: state.profile.equipment.length ? [...state.profile.equipment] : ['bodyweight'], context: 'onboarding' };
+        await writeState(state);
+      }
+      return ctx.reply(onboardingPrompt('equipment'), equipmentSelectKeyboard(state.ui.equipmentDraft.selected));
+    }
+
+    if (step === 'cardio') {
+      return ctx.reply(onboardingPrompt('cardio'), cardioYesNoKeyboard('onboarding'));
+    }
+
+    if (step === 'limitations') {
+      return ctx.reply(onboardingPrompt('limitations'), limitationsYesNoKeyboard('onboarding'));
+    }
+
+    if (step === 'injuries') {
+      return ctx.reply(onboardingPrompt('injuries'), injuriesYesNoKeyboard('onboarding'));
+    }
+
     const keyboard = stepKeyboard(step);
     if (keyboard) {
       return ctx.reply(onboardingPrompt(step), keyboard);
@@ -162,6 +187,24 @@ export function registerOnboarding(bot: Telegraf) {
     const nextStep = getCurrentOnboardingStep(state);
     if (nextStep === 'completed') {
       return ctx.reply(`Анкета заполнена.\n\n${profileSummary(state)}`, mainMenu(state.notificationsEnabled));
+    }
+
+    if (nextStep === 'equipment') {
+      state.ui.equipmentDraft = { selected: state.profile.equipment.length ? [...state.profile.equipment] : ['bodyweight'], context: 'onboarding' };
+      await writeState(state);
+      return ctx.reply(onboardingPrompt('equipment'), equipmentSelectKeyboard(state.ui.equipmentDraft.selected));
+    }
+
+    if (nextStep === 'cardio') {
+      return ctx.reply(onboardingPrompt('cardio'), cardioYesNoKeyboard('onboarding'));
+    }
+
+    if (nextStep === 'limitations') {
+      return ctx.reply(onboardingPrompt('limitations'), limitationsYesNoKeyboard('onboarding'));
+    }
+
+    if (nextStep === 'injuries') {
+      return ctx.reply(onboardingPrompt('injuries'), injuriesYesNoKeyboard('onboarding'));
     }
 
     const nextKeyboard = stepKeyboard(nextStep);

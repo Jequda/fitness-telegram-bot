@@ -69,11 +69,25 @@ const equipmentMap: Record<string, EquipmentType> = {
   резинки: 'resistance_bands',
   резина: 'resistance_bands',
   гиря: 'kettlebell',
+  гири: 'kettlebell',
   скамья: 'bench',
   велотренажер: 'stationary_bike',
   велотренажёр: 'stationary_bike',
   дорожка: 'treadmill',
-  скакалка: 'jump_rope'
+  скакалка: 'jump_rope',
+  штанга: 'barbell',
+  барбелл: 'barbell',
+  trx: 'trx',
+  'trx-петли': 'trx',
+  петли: 'trx',
+  'ролик для пресса': 'ab_wheel',
+  ролик: 'ab_wheel',
+  'массажный ролик': 'foam_roller',
+  'пенный ролик': 'foam_roller',
+  'степ-платформа': 'step_platform',
+  степпер: 'step_platform',
+  медбол: 'medicine_ball',
+  'медицинский мяч': 'medicine_ball'
 };
 
 export function getCurrentOnboardingStep(state: UserState): OnboardingStep {
@@ -270,11 +284,17 @@ const equipmentLabels: Record<EquipmentType, string> = {
   pullup_bar: 'турник',
   dip_bars: 'брусья',
   resistance_bands: 'резинки',
-  kettlebell: 'гиря',
+  kettlebell: 'гири',
   bench: 'скамья',
-  stationary_bike: 'велотренажер',
+  stationary_bike: 'велотренажёр',
   treadmill: 'беговая дорожка',
-  jump_rope: 'скакалка'
+  jump_rope: 'скакалка',
+  barbell: 'штанга',
+  trx: 'TRX-петли',
+  ab_wheel: 'ролик для пресса',
+  foam_roller: 'массажный ролик',
+  step_platform: 'степ-платформа',
+  medicine_ball: 'медбол'
 };
 
 export function profileSummary(state: UserState) {

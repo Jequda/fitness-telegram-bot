@@ -1,6 +1,25 @@
 import { Markup } from 'telegraf';
-import { DailyPlan, ExerciseProgress, GoalType, OnboardingStep, ProfileQuestionStep } from '../types/index.js';
+import { DailyPlan, EquipmentType, ExerciseProgress, GoalType, OnboardingStep, ProfileQuestionStep } from '../types/index.js';
 import { exercisesMap } from '../data/exercises.js';
+
+const equipmentOptions: Array<[string, EquipmentType]> = [
+  ['Свой вес', 'bodyweight'],
+  ['Гантели', 'dumbbells'],
+  ['Гири', 'kettlebell'],
+  ['Штанга', 'barbell'],
+  ['Турник', 'pullup_bar'],
+  ['Брусья', 'dip_bars'],
+  ['Резинки / эспандер', 'resistance_bands'],
+  ['TRX-петли / кольца', 'trx'],
+  ['Скамья', 'bench'],
+  ['Ролик для пресса', 'ab_wheel'],
+  ['Массажный ролик', 'foam_roller'],
+  ['Степ-платформа', 'step_platform'],
+  ['Медбол', 'medicine_ball'],
+  ['Велотренажёр', 'stationary_bike'],
+  ['Беговая дорожка', 'treadmill'],
+  ['Скакалка', 'jump_rope'],
+];
 
 type ExerciseSubgroup = {
   id: string;
@@ -233,6 +252,121 @@ export function onboardingExperienceKeyboard() {
     [Markup.button.callback('Новичок', 'onboarding:experience:beginner')],
     [Markup.button.callback('Средний', 'onboarding:experience:intermediate')],
     [Markup.button.callback('Продвинутый', 'onboarding:experience:advanced')]
+  ]);
+}
+
+const cardioTypeOptions: Array<[string, string]> = [
+  ['Ходьба', 'ходьба'],
+  ['Бег', 'бег'],
+  ['Велосипед', 'велосипед'],
+  ['Плавание', 'плавание'],
+  ['Эллипсоид', 'эллипсоид'],
+  ['Лестница / ступеньки', 'лестница'],
+  ['Скандинавская ходьба', 'скандинавская ходьба'],
+  ['Танцы', 'танцы'],
+  ['Йога', 'йога'],
+  ['Растяжка', 'растяжка'],
+];
+
+export function cardioYesNoKeyboard(context: 'onboarding' | 'profile') {
+  const rows: ReturnType<typeof Markup.button.callback>[][] = [
+    [Markup.button.callback('Да', `cardio:yes:${context}`), Markup.button.callback('Нет', `cardio:no:${context}`)]
+  ];
+  if (context === 'profile') {
+    rows.push([Markup.button.callback('Отмена', 'profile:cancel')]);
+  }
+  return Markup.inlineKeyboard(rows);
+}
+
+export function cardioTypesKeyboard(selected: string[]) {
+  return Markup.inlineKeyboard([
+    ...cardioTypeOptions.map(([label, value]) => [
+      Markup.button.callback(`${selected.includes(value) ? '✅' : '◻️'} ${label}`, `ct:toggle:${value}`)
+    ]),
+    [Markup.button.callback('💾 Сохранить', 'ct:done'), Markup.button.callback('← Назад', 'ct:back')]
+  ]);
+}
+
+const limitationOptions: string[] = [
+  'Запрет врача на нагрузки',
+  'Гипертония (высокое давление)',
+  'Заболевания сердца / аритмия',
+  'Астма / одышка при нагрузке',
+  'Сахарный диабет',
+  'Остеопороз',
+  'Варикоз',
+  'Беременность / после родов',
+  'Реабилитация после операции',
+  'Ограниченный диапазон движений',
+];
+
+const injuryOptions: string[] = [
+  'Травма спины / позвоночника',
+  'Грыжа / протрузия диска',
+  'Травма шеи',
+  'Травма колена (мениск, связки)',
+  'Травма плеча / вращательная манжета',
+  'Травма бедра / таза',
+  'Травма голеностопа / стопы',
+  'Травма запястья',
+  'Травма локтя / теннисный локоть',
+  'Перелом (в анамнезе)',
+  'Разрыв / растяжение связок',
+];
+
+export function limitationsYesNoKeyboard(context: 'onboarding' | 'profile') {
+  const rows: ReturnType<typeof Markup.button.callback>[][] = [
+    [Markup.button.callback('Да', `lim:yes:${context}`), Markup.button.callback('Нет', `lim:no:${context}`)]
+  ];
+  if (context === 'profile') {
+    rows.push([Markup.button.callback('Отмена', 'profile:cancel')]);
+  }
+  return Markup.inlineKeyboard(rows);
+}
+
+export function limitationsSelectKeyboard(selected: string[]) {
+  return Markup.inlineKeyboard([
+    ...limitationOptions.map((item) => [
+      Markup.button.callback(`${selected.includes(item) ? '✅' : '◻️'} ${item}`, `ls:toggle:${item}`)
+    ]),
+    [Markup.button.callback('💾 Сохранить', 'ls:done'), Markup.button.callback('← Назад', 'ls:back')]
+  ]);
+}
+
+export function injuriesYesNoKeyboard(context: 'onboarding' | 'profile') {
+  const rows: ReturnType<typeof Markup.button.callback>[][] = [
+    [Markup.button.callback('Да', `inj:yes:${context}`), Markup.button.callback('Нет', `inj:no:${context}`)]
+  ];
+  if (context === 'profile') {
+    rows.push([Markup.button.callback('Отмена', 'profile:cancel')]);
+  }
+  return Markup.inlineKeyboard(rows);
+}
+
+export function injuriesSelectKeyboard(selected: string[]) {
+  return Markup.inlineKeyboard([
+    ...injuryOptions.map((item) => [
+      Markup.button.callback(`${selected.includes(item) ? '✅' : '◻️'} ${item}`, `ij:toggle:${item}`)
+    ]),
+    [Markup.button.callback('💾 Сохранить', 'ij:done'), Markup.button.callback('← Назад', 'ij:back')]
+  ]);
+}
+
+export function equipmentSelectKeyboard(selected: EquipmentType[]) {
+  return Markup.inlineKeyboard([
+    ...equipmentOptions.map(([label, value]) => [
+      Markup.button.callback(`${selected.includes(value) ? '✅' : '◻️'} ${label}`, `eq:toggle:${value}`)
+    ]),
+    [Markup.button.callback('💾 Сохранить', 'eq:done'), Markup.button.callback('Отмена', 'eq:cancel')]
+  ]);
+}
+
+export function experienceConfirmKeyboard(level: 'beginner' | 'intermediate' | 'advanced', context: 'profile' | 'onboarding') {
+  const confirmAction = context === 'profile' ? `profile:experience:confirm:${level}` : `onboarding:experience:confirm:${level}`;
+  const backAction = context === 'profile' ? 'profile:edit:experience' : 'onboarding:experience:back';
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('Подтвердить', confirmAction)],
+    [Markup.button.callback('Назад', backAction)]
   ]);
 }
 
