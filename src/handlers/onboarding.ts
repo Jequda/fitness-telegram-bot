@@ -9,10 +9,14 @@ import {
   onboardingGoalKeyboard,
   onboardingPrompt,
   onboardingSexKeyboard,
-  profileActionsKeyboard
+  profileActionsKeyboard,
+  progressExerciseKeyboard
 } from '../keyboards/main.js';
+import { exercisesMap } from '../data/exercises.js';
 import { applyOnboardingAnswer, applyProfileAnswer, getCurrentOnboardingStep, profileSummary } from '../services/onboarding.js';
 import { askTrainer } from '../services/openai.js';
+import { appendExerciseSet, clearProgressDraft, exerciseProgressText, getExerciseProgress } from '../services/progress.js';
+import { buildTodayPlan } from '../services/planner.js';
 import { readState, writeState } from '../services/storage.js';
 import { logError } from '../services/logger.js';
 
@@ -95,6 +99,26 @@ export function registerOnboarding(bot: Telegraf) {
         await writeState(state);
         return ctx.reply('Не удалось получить ответ от AI. Попробуй ещё раз.', aiChatKeyboard());
       }
+    }
+
+    if (state.ui.progressDraft?.awaitingCustomWeight) {
+      const draft = state.ui.progressDraft;
+      const weight = parseFloat(text.replace(',', '.'));
+      if (isNaN(weight) || weight < 0.5 || weight > 50) {
+        return ctx.reply('Введи вес числом от 0.5 до 50 кг (например: 7.5 или 12).');
+      }
+      const exercise = exercisesMap[draft.exerciseId];
+      const plan = await buildTodayPlan(chatId);
+      await appendExerciseSet(chatId, plan, draft.exerciseId, {
+        setNumber: draft.pendingSetNumber,
+        value: draft.pendingValue!,
+        unit: exercise.logUnit,
+        weightKg: weight,
+        loggedAt: new Date().toISOString()
+      });
+      await clearProgressDraft(chatId);
+      const progress = await getExerciseProgress(chatId, plan.date, draft.exerciseId);
+      return ctx.reply(await exerciseProgressText(chatId, plan, draft.exerciseId), progressExerciseKeyboard(draft.exerciseId, progress));
     }
 
     const profileEditStep = state.ui.profileEdit?.step;

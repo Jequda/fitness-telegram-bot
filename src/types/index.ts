@@ -175,6 +175,7 @@ export interface UserState {
       exerciseId: string;
       pendingSetNumber: number;
       pendingValue?: number;
+      awaitingCustomWeight?: boolean;
     };
   };
 }

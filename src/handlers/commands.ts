@@ -1,4 +1,4 @@
-import { Telegraf } from 'telegraf';
+import { Markup, Telegraf } from 'telegraf';
 import {
   aiChatExitLabel,
   aiChatKeyboard,
@@ -410,6 +410,21 @@ export function registerCommands(bot: Telegraf) {
     return ctx.reply('Выбери упражнение.', exerciseListKeyboard());
   });
 
+  bot.action(/^exg:(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!(await ensureOnboarded(ctx))) return;
+    const groupId = ctx.match[1];
+    return ctx.reply('Выбери подгруппу.', exerciseListKeyboard(groupId));
+  });
+
+  bot.action(/^exsg:([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!(await ensureOnboarded(ctx))) return;
+    const groupId = ctx.match[1];
+    const subgroupId = ctx.match[2];
+    return ctx.reply('Выбери упражнение.', exerciseListKeyboard(groupId, subgroupId));
+  });
+
   bot.action('progress', async (ctx) => {
     await ctx.answerCbQuery();
     if (!(await ensureOnboarded(ctx))) return;
@@ -619,12 +634,21 @@ export function registerCommands(bot: Telegraf) {
       return ctx.reply('Сначала выбери объём подхода.', await menuByChat(chatId));
     }
 
+    if (weightRaw === 'custom') {
+      draft.awaitingCustomWeight = true;
+      await writeState(state);
+      return ctx.reply(
+        `Подход ${draft.pendingSetNumber}: введи вес в кг (например: 7.5 или 12):`,
+        Markup.inlineKeyboard([[Markup.button.callback('Отмена', `pg:${exerciseId}`)]])
+      );
+    }
+
     const plan = await buildTodayPlan(chatId);
     await appendExerciseSet(chatId, plan, exerciseId, {
       setNumber: draft.pendingSetNumber,
       value: draft.pendingValue,
       unit: exercise.logUnit,
-      weightKg: weightRaw === 'skip' ? undefined : Number(weightRaw),
+      weightKg: Number(weightRaw),
       loggedAt: new Date().toISOString()
     });
     await clearProgressDraft(chatId);

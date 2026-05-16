@@ -344,7 +344,7 @@ export function exerciseWeightKeyboard(exerciseId: string) {
       rows[rowIndex].push(Markup.button.callback(`${option} кг`, `pw:${exerciseId}:${option}`));
       return rows;
     }, []),
-    [Markup.button.callback('Без веса', `pw:${exerciseId}:skip`)],
+    [Markup.button.callback('Ввести свой вес', `pw:${exerciseId}:custom`)],
     [Markup.button.callback('Назад', `pg:${exerciseId}`)]
   ]);
 }
