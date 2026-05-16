@@ -101,8 +101,7 @@ export function mainMenu(notificationsEnabled = true) {
     [mainMenuLabels.exercises, mainMenuLabels.progress],
     [mainMenuLabels.profile, mainMenuLabels.weekReport],
     [mainMenuLabels.skipEvening, mainMenuLabels.skipToday],
-    [notificationsEnabled ? mainMenuLabels.notificationsOff : mainMenuLabels.notificationsOn],
-    [mainMenuLabels.aiTrainer]
+    [notificationsEnabled ? mainMenuLabels.notificationsOff : mainMenuLabels.notificationsOn]
   ])
     .resize()
     .persistent();
