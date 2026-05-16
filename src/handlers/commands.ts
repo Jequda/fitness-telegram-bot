@@ -549,7 +549,7 @@ export function registerCommands(bot: Telegraf) {
     }
     await writeState(state);
     try {
-      await ctx.editMessageReplyMarkup(cardioTypesKeyboard(draft.selected).reply_markup);
+      await ctx.editMessageText('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
     } catch {
       await ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
     }
@@ -635,7 +635,7 @@ export function registerCommands(bot: Telegraf) {
     }
     await writeState(state);
     try {
-      await ctx.editMessageReplyMarkup(injuriesSelectKeyboard(draft.selected).reply_markup);
+      await ctx.editMessageText('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
     } catch {
       await ctx.reply('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
     }
@@ -720,7 +720,7 @@ export function registerCommands(bot: Telegraf) {
     }
     await writeState(state);
     try {
-      await ctx.editMessageReplyMarkup(limitationsSelectKeyboard(draft.selected).reply_markup);
+      await ctx.editMessageText('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
     } catch {
       await ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
     }
@@ -773,7 +773,7 @@ export function registerCommands(bot: Telegraf) {
     }
     await writeState(state);
     try {
-      await ctx.editMessageReplyMarkup(equipmentSelectKeyboard(draft.selected).reply_markup);
+      await ctx.editMessageText('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
     } catch {
       await ctx.reply('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
     }
