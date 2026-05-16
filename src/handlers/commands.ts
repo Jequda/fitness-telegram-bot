@@ -548,12 +548,8 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    const cbMsgCt = ctx.callbackQuery?.message;
-    if (cbMsgCt && 'message_id' in cbMsgCt) {
-      await ctx.telegram.editMessageReplyMarkup(cbMsgCt.chat.id, cbMsgCt.message_id, undefined, cardioTypesKeyboard(draft.selected).reply_markup);
-    } else {
-      await ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
-    }
+    try { await ctx.deleteMessage(); } catch { /* ignore */ }
+    await ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
   });
 
   bot.action('ct:done', async (ctx) => {
@@ -635,12 +631,8 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    const cbMsgIj = ctx.callbackQuery?.message;
-    if (cbMsgIj && 'message_id' in cbMsgIj) {
-      await ctx.telegram.editMessageReplyMarkup(cbMsgIj.chat.id, cbMsgIj.message_id, undefined, injuriesSelectKeyboard(draft.selected).reply_markup);
-    } else {
-      await ctx.reply('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
-    }
+    try { await ctx.deleteMessage(); } catch { /* ignore */ }
+    await ctx.reply('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
   });
 
   bot.action('ij:done', async (ctx) => {
@@ -721,12 +713,8 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    const cbMsgLs = ctx.callbackQuery?.message;
-    if (cbMsgLs && 'message_id' in cbMsgLs) {
-      await ctx.telegram.editMessageReplyMarkup(cbMsgLs.chat.id, cbMsgLs.message_id, undefined, limitationsSelectKeyboard(draft.selected).reply_markup);
-    } else {
-      await ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
-    }
+    try { await ctx.deleteMessage(); } catch { /* ignore */ }
+    await ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
   });
 
   bot.action('ls:done', async (ctx) => {
@@ -775,12 +763,8 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    const cbMsg = ctx.callbackQuery?.message;
-    if (cbMsg && 'message_id' in cbMsg) {
-      await ctx.telegram.editMessageReplyMarkup(cbMsg.chat.id, cbMsg.message_id, undefined, equipmentSelectKeyboard(draft.selected).reply_markup);
-    } else {
-      await ctx.reply('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
-    }
+    try { await ctx.deleteMessage(); } catch { /* ignore */ }
+    await ctx.reply('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
   });
 
   bot.action('eq:done', async (ctx) => {
