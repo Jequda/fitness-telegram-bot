@@ -548,9 +548,10 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    try {
-      await ctx.editMessageText('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
-    } catch {
+    const cbMsgCt = ctx.callbackQuery?.message;
+    if (cbMsgCt && 'message_id' in cbMsgCt) {
+      await ctx.telegram.editMessageReplyMarkup(cbMsgCt.chat.id, cbMsgCt.message_id, undefined, cardioTypesKeyboard(draft.selected).reply_markup);
+    } else {
       await ctx.reply('Выбери виды кардио:', cardioTypesKeyboard(draft.selected));
     }
   });
@@ -634,9 +635,10 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    try {
-      await ctx.editMessageText('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
-    } catch {
+    const cbMsgIj = ctx.callbackQuery?.message;
+    if (cbMsgIj && 'message_id' in cbMsgIj) {
+      await ctx.telegram.editMessageReplyMarkup(cbMsgIj.chat.id, cbMsgIj.message_id, undefined, injuriesSelectKeyboard(draft.selected).reply_markup);
+    } else {
       await ctx.reply('Выбери травмы:', injuriesSelectKeyboard(draft.selected));
     }
   });
@@ -719,9 +721,10 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    try {
-      await ctx.editMessageText('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
-    } catch {
+    const cbMsgLs = ctx.callbackQuery?.message;
+    if (cbMsgLs && 'message_id' in cbMsgLs) {
+      await ctx.telegram.editMessageReplyMarkup(cbMsgLs.chat.id, cbMsgLs.message_id, undefined, limitationsSelectKeyboard(draft.selected).reply_markup);
+    } else {
       await ctx.reply('Выбери ограничения:', limitationsSelectKeyboard(draft.selected));
     }
   });
@@ -772,9 +775,10 @@ export function registerCommands(bot: Telegraf) {
       draft.selected.push(item);
     }
     await writeState(state);
-    try {
-      await ctx.editMessageText('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
-    } catch {
+    const cbMsg = ctx.callbackQuery?.message;
+    if (cbMsg && 'message_id' in cbMsg) {
+      await ctx.telegram.editMessageReplyMarkup(cbMsg.chat.id, cbMsg.message_id, undefined, equipmentSelectKeyboard(draft.selected).reply_markup);
+    } else {
       await ctx.reply('Выбери оборудование:', equipmentSelectKeyboard(draft.selected));
     }
   });
